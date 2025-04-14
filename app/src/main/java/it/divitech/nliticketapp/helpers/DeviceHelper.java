@@ -264,6 +264,9 @@ public final class DeviceHelper implements ServiceConnection
 
     public void unregister() throws IllegalStateException
     {
+        if (deviceService == null) {
+            return;
+        }
         try
         {
             deviceService.unregister( null );
