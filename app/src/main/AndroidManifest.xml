@@ -72,6 +72,8 @@
             android:exported="true"
             android:launchMode="singleTop">
 
+
+
             <!-- CB2 APP API RESULT INTENT -->
             <intent-filter>
                 <data android:host="result"

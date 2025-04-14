@@ -128,13 +128,13 @@ public class SelezioneTurnoActivity extends AppCompatActivity
                     {
                         OperatorSession session = application.getCurrentSessionInfo().currentSession;
 
-                        if( session != null )
-                        {
+                        if (session != null) {
                             session.status = "C";
-                            session.tsClose = application.toIso8601Local( ZonedDateTime.now() );
+                            session.tsClose = application.toIso8601Local(ZonedDateTime.now());
 
-                            application.getSessionsTable().update( session );
-
+                            new Thread(() -> {
+                                application.getSessionsTable().update(session);
+                            }).start();
                         }
                     }
 

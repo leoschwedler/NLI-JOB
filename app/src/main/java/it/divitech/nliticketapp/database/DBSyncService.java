@@ -3,6 +3,7 @@ package it.divitech.nliticketapp.database;
 import static it.divitech.nliticketapp.NLITicketApplication.PREFERENCES;
 import static it.divitech.nliticketapp.NLITicketApplication.TAG;
 
+import android.annotation.SuppressLint;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -13,6 +14,7 @@ import android.content.SharedPreferences;
 import android.net.ConnectivityManager;
 import android.net.NetworkCapabilities;
 import android.os.Binder;
+import android.os.Build;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.IBinder;
@@ -61,13 +63,20 @@ public class DBSyncService extends Service
 
         backgroundHandler = new Handler( handlerThread.getLooper() );
 
-        NotificationChannel channel = new NotificationChannel( CHANNEL_ID, "DB Sync Channel", NotificationManager.IMPORTANCE_LOW );
-        channel.setDescription( "" );
+        NotificationChannel channel = null;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            channel = new NotificationChannel( CHANNEL_ID, "DB Sync Channel", NotificationManager.IMPORTANCE_LOW );
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            channel.setDescription( "" );
+        }
 
         NotificationManager manager = getSystemService(NotificationManager.class);
 
         if( manager != null )
-            manager.createNotificationChannel( channel );
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                manager.createNotificationChannel( channel );
+            }
 
         uploadTask = new Runnable()
         {
@@ -135,6 +144,7 @@ public class DBSyncService extends Service
 
     //-----------------------------------------------------------------------------------------------------------------------------------------
 
+    @SuppressLint("ForegroundServiceType")
     private void startForegroundService()
     {
         Notification notification = createNotification( "DB Sync Service in esecuzione" );
@@ -480,7 +490,8 @@ public class DBSyncService extends Service
 
     //-----------------------------------------------------------------------------------------------------------------------------------------
 
-    private void updateNotification( String text )
+    @SuppressLint("ForegroundServiceType")
+    private void updateNotification(String text )
     {
         Notification notification = createNotification( text );
 
