@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+package it.divitech.nliticketapp;
+
+message TicketData
+{
+    int32 domain_id = 1;
+    int32 user_id = 2;
+    int32 fee_id = 3;
+    int32 zone_from = 4;
+    int32 zone_to = 5;
+    int64 ts_valid_from = 6;
+    int64 ts_valid_to = 7;
+    int32 trips_count = 8;
+    int32 minutes = 9;
+    int64 ts_issue = 10;
+    string trip_code = 11;
+    int32 quantity = 12;
+    int32 unit_id = 13;
+    int32 serial = 14;
+    int32 card_id = 15;
+    fixed32 crc = 16;
+}

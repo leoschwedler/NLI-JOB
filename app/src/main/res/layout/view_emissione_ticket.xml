@@ -1,0 +1,309 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <data>
+
+    </data>
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fillViewport="true"
+        android:scrollbars="vertical"
+        android:scrollbarSize="8dp"
+        android:fadeScrollbars="false">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <Spinner
+                android:id="@+id/lista_tipo_doc_viaggio_spinner"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:layout_marginStart="24dp"
+                android:layout_marginEnd="24dp"
+                android:background="@drawable/spinner_rounded_box"
+                android:paddingLeft="4dp"
+                android:paddingTop="4dp"
+                android:paddingRight="0dp"
+                android:paddingBottom="4dp"
+                android:textSize="18sp"
+                tools:listitem="@layout/spinner_item_dati_tipo_ticket" />
+
+            <LinearLayout
+                android:id="@+id/andataRitorno_layout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="32dp"
+                android:layout_marginTop="16dp"
+                android:layout_marginEnd="32dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="center_vertical"
+                    android:text="@string/andata_e_ritorno"
+                    android:textColor="@color/iseo_blue"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/andataRitorno_textView"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:gravity="center_vertical"
+                    android:text="SI/NO"
+                    android:textAlignment="textEnd"
+                    android:textColor="@color/iseo_blue"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <Switch
+                    android:id="@+id/andataRitorno_switch"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:buttonTint="@null"
+                    android:checked="true"
+                    android:splitTrack="false"
+                    android:thumbTint="@color/white"
+                    android:trackTint="@color/iseo_blue"
+                    android:trackTintMode="src_over" />
+
+            </LinearLayout>
+
+            <it.divitech.nliticketapp.ui.controls.QuantitativoTitoloViaggioView
+                android:id="@+id/quantita_layout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="32dp"
+                android:layout_marginTop="16dp"
+                android:layout_marginEnd="32dp"
+                app:label="@string/quantita"/>
+
+            <GridLayout
+                android:id="@+id/zone_gridLayout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="22dp"
+                android:layout_marginTop="16dp"
+                android:layout_marginEnd="22dp"
+                android:alignmentMode="alignBounds"
+                android:columnCount="3"
+                android:rowCount="2"
+                android:useDefaultMargins="false"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@+id/quantita_layout">
+
+                <CheckBox
+                    android:id="@+id/zonaA_Button"
+                    android:layout_width="0dp"
+                    android:layout_height="48dp"
+                    android:layout_rowWeight="1"
+                    android:layout_columnWeight="1"
+                    android:layout_gravity="fill"
+                    android:background="@drawable/button_rounded_left_top_disabled"
+                    android:button="@null"
+                    android:checked="true"
+                    android:text="Zona A"
+                    android:textAlignment="center"
+                    android:textColor="@color/white"
+                    app:backgroundTint="@null" />
+
+                <CheckBox
+                    android:id="@+id/zonaB_Button"
+                    android:layout_width="0dp"
+                    android:layout_height="48dp"
+                    android:layout_rowWeight="1"
+                    android:layout_columnWeight="1"
+                    android:layout_gravity="fill"
+                    android:layout_margin="3dp"
+                    android:background="@drawable/button_squared_disabled"
+                    android:button="@null"
+                    android:checked="true"
+                    android:text="Zona B"
+                    android:textAlignment="center"
+                    android:textColor="@color/white"
+                    app:backgroundTint="@null" />
+
+                <CheckBox
+                    android:id="@+id/zonaC_Button"
+                    android:layout_width="0dp"
+                    android:layout_height="48dp"
+                    android:layout_rowWeight="1"
+                    android:layout_columnWeight="1"
+                    android:layout_gravity="fill"
+                    android:layout_margin="3dp"
+                    android:background="@drawable/button_rounded_right_top_disabled"
+                    android:button="@null"
+                    android:checked="true"
+                    android:text="Zona C"
+                    android:textAlignment="center"
+                    android:textColor="@color/white"
+                    app:backgroundTint="@null" />
+
+                <CheckBox
+                    android:id="@+id/zonaD_Button"
+                    android:layout_width="0dp"
+                    android:layout_height="48dp"
+                    android:layout_rowWeight="1"
+                    android:layout_columnWeight="1"
+                    android:layout_gravity="fill"
+                    android:layout_margin="3dp"
+                    android:background="@drawable/button_rounded_left_bottom_disabled"
+                    android:button="@null"
+                    android:checked="true"
+                    android:text="Zona D"
+                    android:textAlignment="center"
+                    android:textColor="@color/white"
+                    app:backgroundTint="@null" />
+
+                <CheckBox
+                    android:id="@+id/zonaE_Button"
+                    android:layout_width="0dp"
+                    android:layout_height="48dp"
+                    android:layout_rowWeight="1"
+                    android:layout_columnWeight="1"
+                    android:layout_gravity="fill"
+                    android:layout_margin="3dp"
+                    android:background="@drawable/button_squared_disabled"
+                    android:button="@null"
+                    android:checked="true"
+                    android:text="Zona E"
+                    android:textAlignment="center"
+                    android:textColor="@color/white"
+                    app:backgroundTint="@null" />
+
+                <CheckBox
+                    android:id="@+id/zonaTutte_Button"
+                    android:layout_width="0dp"
+                    android:layout_height="48dp"
+                    android:layout_rowWeight="1"
+                    android:layout_columnWeight="1"
+                    android:layout_gravity="fill"
+                    android:layout_margin="3dp"
+                    android:background="@drawable/button_rounded_right_bottom_disabled"
+                    android:button="@null"
+                    android:checked="true"
+                    android:text="Tutte"
+                    android:textAlignment="center"
+                    android:textColor="@color/white"
+                    app:backgroundTint="@null" />
+
+            </GridLayout>
+
+            <CheckBox
+                android:id="@+id/tassaSbarco_checkBox"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="32dp"
+                android:checked="true"
+                android:layout_marginTop="4dp"
+                android:layout_marginBottom="0dp"
+                android:paddingRight="8dp"
+                android:text="@string/tassa_di_sbarco"
+                android:textColor="@color/iseo_blue"
+                android:textSize="15sp"
+                android:textStyle="bold" />
+
+            <LinearLayout
+                android:id="@+id/tariffeAccesorie_layout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:layout_marginStart="24dp"
+                android:layout_marginEnd="24dp"
+                android:orientation="vertical">
+
+                <it.divitech.nliticketapp.ui.controls.QuantitativoTitoloViaggioView
+                    android:id="@+id/quantitaAccessoria_1_layout"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    app:label="test 1"/>
+
+
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/totale_textView"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@color/iseo_gray"
+                android:paddingTop="12dp"
+                android:paddingBottom="12dp"
+                android:paddingLeft="16dp"
+                android:paddingRight="16dp"
+                android:text="Totale: 999€"
+                android:textAlignment="center"
+                android:textColor="@color/black"
+                android:textSize="17sp"
+                android:textStyle="bold"
+                android:layout_marginTop="24dp"/>
+
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:id="@+id/linearLayout2"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="24dp"
+                android:layout_marginRight="24dp"
+                android:layout_marginTop="16dp"
+                android:layout_marginBottom="16dp">
+
+                <Button
+                    android:id="@+id/emissione_Button"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/button_rounded_selector"
+                    android:text="Emetti"
+                    android:textAllCaps="false"
+                    android:textSize="16sp"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent" />
+
+                <Button
+                    android:id="@+id/aggiungiCarrello_Button"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:layout_marginEnd="8dp"
+                    android:background="@drawable/button_rounded_selector"
+                    android:text="Aggiungi al Carrello"
+                    android:textAllCaps="false"
+                    android:textSize="16sp"
+                    app:layout_constraintEnd_toStartOf="@+id/carrello_Button"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toBottomOf="@+id/emissione_Button" />
+
+                <ImageButton
+                    android:id="@+id/carrello_Button"
+                    android:layout_width="92dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:background="@drawable/button_rounded_selector"
+                    android:src="@drawable/shopping_cart_empty_32"
+                    app:tint="#ffffff"
+                    android:paddingTop="8dp"
+                    android:paddingBottom="8dp"
+                    android:text="99"
+                    android:textAllCaps="false"
+                    android:textSize="16sp"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintTop_toBottomOf="@+id/emissione_Button" />
+
+
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+        </LinearLayout>
+
+    </ScrollView>
+
+</layout>

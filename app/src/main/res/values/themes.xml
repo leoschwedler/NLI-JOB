@@ -1,0 +1,11 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Base application theme. -->
+    <style name="Base.Theme.NLITicketApp" parent="Theme.Material3.DayNight.NoActionBar">
+        <!-- Customize your light theme here. -->
+        <item name="colorPrimary">@color/iseo_blue</item>
+        <item name="android:fontFamily">@font/urbanist_700</item>
+    </style>
+
+    <style name="Theme.NLITicketApp" parent="Base.Theme.NLITicketApp" />
+
+</resources>

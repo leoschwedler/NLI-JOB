@@ -1,0 +1,83 @@
+<resources>
+    <string name="app_name">NLI Ticket App</string>
+
+    <string name="title_dashboard">Dashboard</string>
+    <string name="title_notifications">Notifications</string>
+    <string name="title_qrcode">QR Code Scanner</string>
+    <string name="title_activity_login">LoginActivity</string>
+    <string name="prompt_email">Email</string>
+    <string name="prompt_password">Password</string>
+    <string name="action_sign_in">Sign in or register</string>
+    <string name="action_sign_in_short">Sign in</string>
+    <string name="welcome">"Welcome !"</string>
+
+    <string name="login">Login</string>
+    <string name="username">Nome Utente</string>
+    <string name="password">Password</string>
+    <string name="accedi">Accedi</string>
+    <string name="invalid_username">Not a valid username</string>
+    <string name="invalid_password">Password must be >5 characters</string>
+    <string name="login_failed">"Login failed"</string>
+    <string name="scarica_aggiornamento">Scarica aggiornamento</string>
+
+    <string name="dati_turno">Seleziona turno</string>
+    <string name="dati_zona">Zona</string>
+    <string name="dati_tipologia_ticket">Tipologia Doc. Viaggio</string>
+    <string name="inizia_turno">Inizia turno</string>
+
+    <string name="bottom_sheet">Aggiornamento scaricato\n correttamente</string>
+    <string name="drop_down_item">Seleziona turno</string>
+    <string name="button_acquisisci_qrcode">Acquisisci QrCode</string>
+    <string name="oppure_avvicina_la_tessera">Oppure avvicina la tessera</string>
+    <string name="menu">menu</string>
+    <string name="back">back</string>
+
+    <string name="andata_e_ritorno">Andata e Ritorno</string>
+    <string name="quantita">Quantità</string>
+    <string name="tassa_di_sbarco">Tassa di sbarco</string>
+
+    <array name="lista_turni">
+        <item>C1</item>
+        <item>C2</item>
+        <item>C3</item>
+        <item>P1</item>
+        <item>P2</item>
+        <item>P3</item>
+        <item>IS</item>
+        <item>IS1</item>
+        <item>IS2</item>
+        <item>IS3</item>
+        <item>L</item>
+        <item>L3</item>
+        <item>Bigl. Sulzano</item>
+        <item>Bigl. Iseo</item>
+        <item>Bigl. Sale M.</item>
+        <item>Pontilista</item>
+        <item>Rivendita</item>
+    </array>
+
+    <array name="lista_zone">
+        <item>Zona A</item>
+        <item>Zona B</item>
+        <item>Zona C</item>
+        <item>Zona D</item>
+        <item>Zona E</item>
+    </array>
+    <string name="title_activity_settings">SettingsActivity</string>
+
+    <!-- Preference Titles -->
+    <string name="messages_header">Messages</string>
+    <string name="sync_header">Sync</string>
+
+    <!-- Messages Preferences -->
+    <string name="signature_title">Your signature</string>
+    <string name="reply_title">Default reply action</string>
+
+    <!-- Sync Preferences -->
+    <string name="sync_title">Sync email periodically</string>
+    <string name="attachment_title">Download incoming attachments</string>
+    <string name="attachment_summary_on">Automatically download attachments for incoming emails</string>
+    <string name="attachment_summary_off">Only download attachments when manually requested</string>
+
+
+</resources>

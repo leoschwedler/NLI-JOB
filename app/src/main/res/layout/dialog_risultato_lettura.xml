@@ -1,0 +1,181 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/black75"
+    android:elevation="10dp"
+    android:clickable="true"
+    android:focusable="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        android:background="@drawable/dialog_rounded_box"
+        android:gravity="center"
+        android:orientation="vertical"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <TextView
+            android:id="@+id/validationResult_textView"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:background="#00C000"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"
+            android:text="VALIDATO"
+            android:textAlignment="center"
+            android:textAllCaps="true"
+            android:textColor="#FFFFFF"
+            android:textSize="21sp"
+            android:textStyle="bold" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="20dp"
+            android:layout_marginTop="16dp"
+            android:layout_marginRight="20dp"
+            android:layout_marginBottom="16dp"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/dataEmissione_textView"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="01/01/2000"
+                android:textColor="@color/black"
+                android:textSize="16sp"
+                android:textAlignment="center"
+                android:textStyle="normal" />
+
+            <TextView
+                android:id="@+id/tipologia_textView"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="TIPOLOGIA"
+                android:textColor="@color/black"
+                android:textSize="20sp"
+                android:textAlignment="center"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/zone_textView"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Zona A - Zona C"
+                android:textColor="@color/black"
+                android:textSize="15sp"
+                android:textAlignment="center"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/quantity_textView"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="Passeggeri 10"
+                android:textColor="@color/black"
+                android:textSize="16sp"
+                android:textAlignment="center"
+                android:textStyle="normal" />
+
+            <TextView
+                android:id="@+id/residualTrip_textView"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+
+                android:text="Corse residue 0"
+                android:textColor="@color/black"
+                android:textSize="16sp"
+                android:textAlignment="center"
+                android:textStyle="normal" />
+
+            <!--
+            <TextView
+                android:id="@+id/detail_textView"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Data Emissione\n01/01/2000\n\nArticolo: ORDINARIO\nZona C\n\nCorse residue: 0\nPasseggeri: 1\n\netc. etc."
+                android:textColor="@color/black"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+            -->
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/lastValidation_textView"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="2dp"
+            android:layout_marginRight="2dp"
+            android:layout_marginBottom="0dp"
+            android:background="#ffffff"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"
+            android:text="ULTIMA VALIDAZIONE:\nNon disponibile"
+            android:textAlignment="center"
+            android:textAllCaps="false"
+            android:textColor="@color/black"
+            android:textSize="15sp"
+            android:textStyle="normal" />
+
+        <LinearLayout
+            android:id="@+id/linearLayout7"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="20dp"
+            android:layout_marginTop="16dp"
+            android:layout_marginEnd="20dp"
+            android:layout_marginBottom="16dp"
+            android:gravity="center"
+            android:orientation="horizontal"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent">
+
+            <Button
+                android:id="@+id/close_button"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginRight="4dp"
+                android:layout_weight="1"
+                android:background="@drawable/button_rounded_selector"
+                android:paddingTop="8dp"
+                android:paddingBottom="8dp"
+                android:text="Chiudi"
+                android:textAllCaps="false"
+                android:textSize="16sp" />
+
+            <Button
+                android:id="@+id/validaTicket_button"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="4dp"
+                android:layout_weight="1"
+                android:background="@drawable/button_rounded_selector"
+                android:paddingTop="8dp"
+                android:paddingBottom="8dp"
+                android:text="Valida"
+                android:textAllCaps="false"
+                android:textSize="16sp" />
+
+
+
+        </LinearLayout>
+
+
+    </LinearLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item
+        android:id="@+id/validazioneTicketFragment"
+        android:icon="@drawable/ic_menu_validate"
+        android:title="Validazione" />
+
+    <item
+        android:id="@+id/emissioneTicketFragment"
+        android:icon="@drawable/ic_menu_issue"
+        android:title="Emissione" />
+
+    <item
+        android:id="@+id/controlloTicketFragment"
+        android:icon="@drawable/ic_menu_check"
+        android:title="Controllo" />
+
+</menu>
