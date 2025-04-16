@@ -1323,6 +1323,11 @@ public final class DeviceHelper implements ServiceConnection
 
     //-----------------------------------------------------------------------------------------------------------------------------------------
 
+    public boolean isServiceReady() {
+        return isBinded && deviceService != null;
+    }
+
+
     public UUpdate getUpdate()
     {
         IBinder iBinder = new IBinderCreator()

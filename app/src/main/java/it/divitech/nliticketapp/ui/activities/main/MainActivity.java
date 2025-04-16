@@ -3245,32 +3245,31 @@ public class MainActivity extends AppCompatActivity implements DeviceHelper.Serv
 
     private void setupQRCodeScanner()
     {
-        binding.validazioneControlloTicketView.cameraSurfaceView.setStatusText( "" );
+        binding.validazioneControlloTicketView.cameraSurfaceView.setStatusText("");
 
         // Imposta la lettura dei formati QR_CODE e CODE_39
-        List<BarcodeFormat> formats = Arrays.asList( BarcodeFormat.QR_CODE, BarcodeFormat.CODE_39 );
-        binding.validazioneControlloTicketView.cameraSurfaceView.getBarcodeView().setDecoderFactory( new DefaultDecoderFactory( formats ) );
+        List<BarcodeFormat> formats = Arrays.asList(BarcodeFormat.QR_CODE, BarcodeFormat.CODE_39);
+        binding.validazioneControlloTicketView.cameraSurfaceView.getBarcodeView().setDecoderFactory(new DefaultDecoderFactory(formats));
 
         // Lettura continua
-        binding.validazioneControlloTicketView.cameraSurfaceView.decodeContinuous( new BarcodeCallback()
+        binding.validazioneControlloTicketView.cameraSurfaceView.decodeContinuous(new BarcodeCallback()
         {
             @Override
-            public void barcodeResult( BarcodeResult result )
+            public void barcodeResult(BarcodeResult result)
             {
                 try
                 {
-                    if( processingQRCode )
+                    if (processingQRCode)
                         return;
 
                     processingQRCode = true;
 
                     String qrText = result.getText() == null ? "" : result.getText();
-                    Ticketdata.TicketData ticketData = decodeTicketData( qrText );
+                    Ticketdata.TicketData ticketData = decodeTicketData(qrText);
 
-                    if( ticketData != null )
+                    if (ticketData != null)
                     {
-                        // ASYNC
-                        new Thread( () ->
+                        new Thread(() ->
                         {
                             int error = NO_ERROR;
                             boolean dominioAziendaValidi = false;
@@ -3284,16 +3283,17 @@ public class MainActivity extends AppCompatActivity implements DeviceHelper.Serv
 
                             try
                             {
-                                DeviceHelper.getInstance().getBeeper().startBeep( 200 );
+                                if (DeviceHelper.getInstance().isServiceReady()) {
+                                    DeviceHelper.getInstance().getBeeper().startBeep(200);
+                                }
 
-                                // Dati QR-Code
                                 Ticketdata.TicketData finalTicketData = ticketData;
-                                ticketFee = application.getFeesTable().getFeeById( ticketData.getFeeId() );
+                                ticketFee = application.getFeesTable().getFeeById(ticketData.getFeeId());
 
-                                if( finalTicketData.getZoneFrom() > 0 && finalTicketData.getZoneTo() > 0 )
+                                if (finalTicketData.getZoneFrom() > 0 && finalTicketData.getZoneTo() > 0)
                                 {
-                                    ticketZonaDa = application.getZonesTable().getZoneById( finalTicketData.getZoneFrom() );
-                                    ticketZonaA = application.getZonesTable().getZoneById( finalTicketData.getZoneTo() );
+                                    ticketZonaDa = application.getZonesTable().getZoneById(finalTicketData.getZoneFrom());
+                                    ticketZonaA = application.getZonesTable().getZoneById(finalTicketData.getZoneTo());
                                 }
                                 else
                                 {
@@ -3301,125 +3301,105 @@ public class MainActivity extends AppCompatActivity implements DeviceHelper.Serv
                                     ticketZonaA = null;
                                 }
 
-                                // Dati biglietto (da BE Tecbus)
                                 try
                                 {
-                                    String paddedUnitId = String.format( "%010d", ticketData.getUnitId() );
-                                    String paddedId = String.format( "%08d", ticketData.getSerial() );
+                                    String paddedUnitId = String.format("%010d", ticketData.getUnitId());
+                                    String paddedId = String.format("%08d", ticketData.getSerial());
                                     String tickedID = paddedUnitId + paddedId;
 
-                                    Call<SearchTicketResponse> call = TecBusApiClient.getValidationService().searchTicket( "Bearer " + application.getAccessToken(), tickedID );
+                                    Call<SearchTicketResponse> call = TecBusApiClient.getValidationService().searchTicket("Bearer " + application.getAccessToken(), tickedID);
                                     Response response = call.execute();
 
-                                    if( response != null && response.body() != null && response.code() == 200 )
+                                    if (response != null && response.body() != null && response.code() == 200)
                                     {
-                                        srcTicketResponse = (SearchTicketResponse)response.body();
+                                        srcTicketResponse = (SearchTicketResponse) response.body();
                                     }
                                     else
                                     {
-                                        // Error
                                         error = SEARCH_TICKET_BAD_RESPONSE;
                                     }
 
                                 }
-                                catch( Exception e )
+                                catch (Exception e)
                                 {
-                                    // Error
                                     error = SEARCH_TICKET_EXCEPTION;
                                 }
 
-                                // VERIFICA DOMINIO / AZIENDA
-                                if( finalTicketData.getDomainId() == NLI_DOMAIN_ID &&
-                                    finalTicketData.getUserId() == NLI_USER_ID )
+                                if (finalTicketData.getDomainId() == NLI_DOMAIN_ID &&
+                                        finalTicketData.getUserId() == NLI_USER_ID)
                                 {
                                     dominioAziendaValidi = true;
                                 }
                                 else
                                 {
-                                    // Error
                                     error = INVALID_DOMAIN_OR_USERID;
                                 }
 
-                                // VERIFICA ZONE ORIGINE-DESTINAZIONE
-                                if( currentZone != null && ticketZonaDa != null && ticketZonaA != null )
+                                if (currentZone != null && ticketZonaDa != null && ticketZonaA != null)
                                 {
-                                    if( currentZone.sequence >= ticketZonaDa.sequence &&
-                                        currentZone.sequence <= ticketZonaA.sequence )
+                                    if (currentZone.sequence >= ticketZonaDa.sequence &&
+                                            currentZone.sequence <= ticketZonaA.sequence)
                                         zonaValide = true;
                                 }
-                                else if( ticketZonaDa == null && ticketZonaA == null )
+                                else if (ticketZonaDa == null && ticketZonaA == null)
                                 {
                                     zonaValide = true;
                                 }
 
-                                // VERIFICA VALIDITÀ TEMPORALE (INTERVALLO E MINUTAGGIO)
-                                if( srcTicketResponse != null )
+                                if (srcTicketResponse != null)
                                 {
-                                    if( srcTicketResponse.state.ts_last_validation != null )
+                                    if (srcTicketResponse.state.ts_last_validation != null)
                                     {
-                                        ZonedDateTime lastValidationDate = application.fromIso8601ToLocal( srcTicketResponse.state.ts_last_validation );
+                                        ZonedDateTime lastValidationDate = application.fromIso8601ToLocal(srcTicketResponse.state.ts_last_validation);
 
-                                        // VERIFICA SE FUORI INTERVALLO DI VALIDITA'
-                                        if( srcTicketResponse.valid_from != null && srcTicketResponse.valid_to != null )
+                                        if (srcTicketResponse.valid_from != null && srcTicketResponse.valid_to != null)
                                         {
-                                            ZonedDateTime from = application.fromIso8601ToLocal( srcTicketResponse.valid_from );
-                                            ZonedDateTime to = application.fromIso8601ToLocal( srcTicketResponse.valid_to );
+                                            ZonedDateTime from = application.fromIso8601ToLocal(srcTicketResponse.valid_from);
+                                            ZonedDateTime to = application.fromIso8601ToLocal(srcTicketResponse.valid_to);
 
-                                            if( ZonedDateTime.now().isBefore( from ) || ZonedDateTime.now().isAfter( to ) )
+                                            if (ZonedDateTime.now().isBefore(from) || ZonedDateTime.now().isAfter(to))
                                                 intervalloDateValido = false;
                                         }
 
-                                        // VERIFICA SCADENZA (sul minutaggio)
-                                        if( finalTicketData.getMinutes() > 0 )
+                                        if (finalTicketData.getMinutes() > 0)
                                         {
-                                            ZonedDateTime dataScadenza = ZonedDateTime.now().plusMinutes( finalTicketData.getMinutes() );
+                                            ZonedDateTime dataScadenza = ZonedDateTime.now().plusMinutes(finalTicketData.getMinutes());
 
-                                            if( ZonedDateTime.now().isAfter( dataScadenza ) )
+                                            if (ZonedDateTime.now().isAfter(dataScadenza))
                                                 durataValida = false;
-
                                         }
                                         else
                                         {
-                                            // 0 = Always valid
                                             durataValida = true;
                                         }
-
                                     }
                                 }
 
-                                // VERIFICA CORSE RESIDUE
-                                if( srcTicketResponse != null && srcTicketResponse.state.residual_trips == 0 )
+                                if (srcTicketResponse != null && srcTicketResponse.state.residual_trips == 0)
                                     nrCorseValido = false;
 
                             }
-                            catch( RemoteException e )
+                            catch (RemoteException e)
                             {
-                                // Error
                                 error = EXCEPTION;
                             }
 
-                            //---
-
-                            if( error != NO_ERROR && error != SEARCH_TICKET_EXCEPTION )
+                            if (error != NO_ERROR && error != SEARCH_TICKET_EXCEPTION)
                             {
-                                runOnUiThread( new Runnable()
+                                runOnUiThread(() ->
                                 {
-                                    @Override
-                                    public void run()
+                                    try
                                     {
-                                        try
-                                        {
-                                            DeviceHelper.getInstance().getBeeper().startBeepNew( 200, 500 );
-                                            showDialog_Message( "QR-Code non valido!" );
-
-                                            // processingQRCode = false;
+                                        if (DeviceHelper.getInstance().isServiceReady()) {
+                                            DeviceHelper.getInstance().getBeeper().startBeepNew(200, 500);
                                         }
-                                        catch( RemoteException e )
-                                        {
-
-                                        }
+                                        showDialog_Message("QR-Code non valido!");
                                     }
-                                } );
+                                    catch (RemoteException e)
+                                    {
+                                        Log.e("QRCode", "Erro ao tocar beep de erro", e);
+                                    }
+                                });
 
                             }
                             else
@@ -3432,56 +3412,53 @@ public class MainActivity extends AppCompatActivity implements DeviceHelper.Serv
                                 boolean finalIntervalloDateValido = intervalloDateValido;
                                 boolean finalNrCorseValido = nrCorseValido;
 
-                                runOnUiThread( new Runnable()
+                                runOnUiThread(() ->
                                 {
-                                    @Override
-                                    public void run()
-                                    {
-                                        showDialog_RisultatoLettura( ticketData,
-                                                                     finalTicketFee,
-                                                                     finalSrcTicketResponse,
-                                                                     finalDominioAziendaValidi,
-                                                                     finalZonaValide,
-                                                                     finalDurataValida,
-                                                                     finalIntervalloDateValido,
-                                                                     finalNrCorseValido );
-                                    }
-
-                                } );
-
+                                    showDialog_RisultatoLettura(ticketData,
+                                            finalTicketFee,
+                                            finalSrcTicketResponse,
+                                            finalDominioAziendaValidi,
+                                            finalZonaValide,
+                                            finalDurataValida,
+                                            finalIntervalloDateValido,
+                                            finalNrCorseValido);
+                                });
                             }
 
-
-                        } ).start();
+                        }).start();
 
                     }
                     else
                     {
-                        try
+                        runOnUiThread(() ->
                         {
-                            DeviceHelper.getInstance().getBeeper().startBeepNew( 200, 500 );
-                            showDialog_Message( "QR-Code non valido!" );
-
-                            //processingQRCode = false;
-                        }
-                        catch( RemoteException e )
-                        {
-
-                        }
+                            try
+                            {
+                                if (DeviceHelper.getInstance().isServiceReady()) {
+                                    DeviceHelper.getInstance().getBeeper().startBeepNew(200, 500);
+                                }
+                                showDialog_Message("QR-Code non valido!");
+                            }
+                            catch (RemoteException e)
+                            {
+                                Log.e("QRCode", "Erro ao tocar beep QR inválido", e);
+                            }
+                        });
                     }
 
                 }
-                catch( Exception e )
+                catch (Exception e)
                 {
-                    showSnackbarMessage( "ERRORE NELLA DECODIFICA QR-CODE!" );
+                    showSnackbarMessage("ERRORE NELLA DECODIFICA QR-CODE!");
                 }
 
             }
 
-        } );
+        });
 
         binding.validazioneControlloTicketView.cameraSurfaceView.resume();
     }
+
 
     //-----------------------------------------------------------------------------------------------------------------------------------------
 
