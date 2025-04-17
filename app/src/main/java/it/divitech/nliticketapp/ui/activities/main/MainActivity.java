@@ -724,7 +724,7 @@ public class MainActivity extends AppCompatActivity implements DeviceHelper.Serv
                         application.convertCentesimiInEuro(summary.regularIssuesValue) + "\n\n");
 
                 printer.lineWrap(3);
-                printer.cutPaper();
+                printer.tryCutPaper();
 
                 runOnUiThread(() -> {
                     Toast.makeText(this, "✅ Impressão finalizada", Toast.LENGTH_SHORT).show();
@@ -2482,7 +2482,7 @@ public class MainActivity extends AppCompatActivity implements DeviceHelper.Serv
                 printer.lineWrap(3);
 
                 if (lastElement) {
-                    printer.cutPaper();
+                    printer.tryCutPaper();
                     runOnUiThread(() ->
                             showProgressoStampa("Stampa completata com sucesso", false, false, true)
                     );
@@ -2503,7 +2503,7 @@ public class MainActivity extends AppCompatActivity implements DeviceHelper.Serv
         new Thread(() -> {
             try {
                 printer.lineWrap(3);
-                printer.cutPaper();
+                printer.tryCutPaper();
                 runOnUiThread(() ->
                         showProgressoStampa("Stampa completata con successo", false, false, true)
                 );

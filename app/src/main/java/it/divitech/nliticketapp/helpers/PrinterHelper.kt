@@ -2,6 +2,7 @@ package it.divitech.nliticketapp.helpers
 
 import android.content.Context
 import android.os.RemoteException
+import android.util.Log
 import com.sunmi.peripheral.printer.InnerPrinterCallback
 import com.sunmi.peripheral.printer.InnerPrinterManager
 import com.sunmi.peripheral.printer.InnerResultCallback
@@ -82,5 +83,13 @@ class PrinterHelper(ctx: Context) {
             override fun onRaiseException(code: Int, msg: String) {}
             override fun onPrintResult(code: Int, msg: String) {}
         })
+    }
+
+    fun tryCutPaper() {
+        try {
+            printerService?.cutPaper(null)
+        } catch (e: Exception) {
+            Log.i("ERROR_PRINT", "Este modelo não suporta cutPaper(). Ignorando.")
+        }
     }
 }
