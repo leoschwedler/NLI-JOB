@@ -13,6 +13,7 @@ import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
 import android.graphics.Color;
 import android.location.Location;
 import android.location.LocationListener;
@@ -2402,43 +2403,41 @@ public class MainActivity extends AppCompatActivity implements DeviceHelper.Serv
 
         new Thread(() -> {
             try {
-                // 1) LOGO
-                Bitmap logo = BitmapFactory.decodeResource(getResources(), currentPrintedItem.logoResourceId);
-                printer.printBitmap(logo);
+                // LOGO com fundo branco e redimensionada
+                Bitmap original = BitmapFactory.decodeResource(getResources(), R.drawable.logo_nli_black_300);
+                int maxWidth = 384;
+                int newHeight = (int) ((float) original.getHeight() * maxWidth / original.getWidth());
+                Bitmap resized = Bitmap.createScaledBitmap(original, maxWidth, newHeight, true);
+                Bitmap withWhiteBg = Bitmap.createBitmap(resized.getWidth(), resized.getHeight(), Bitmap.Config.ARGB_8888);
+                Canvas canvas = new Canvas(withWhiteBg);
+                canvas.drawColor(Color.WHITE);
+                canvas.drawBitmap(resized, 0, 0, null);
+
+                printer.setAlignment(1);
+                printer.printBitmap(withWhiteBg);
                 printer.lineWrap(1);
 
-                // 2) P.IVA + QUEBRA
+                // P.IVA
                 printer.printText("P.IVA 03000970164\n");
-                printer.lineWrap(1);
+                printer.printText("------------------------------\n");
 
-                // 3) SEPARADOR + TÍTULO
-                Bitmap sep = BitmapFactory.decodeResource(getResources(), currentPrintedItem.separatorResourceId);
-                printer.printBitmap(sep);
-                printer.lineWrap(1);
-                printer.printText(currentPrintedItem.title + "\n");
-                printer.lineWrap(1);
-                printer.printBitmap(sep);
-                printer.lineWrap(2);
-
-                // 4) DATA/HORA
+                // Título: RICEVUTA + Data
+                printer.printText("RICEVUTA DI VENDITA\n\n");
                 printer.printText(currentPrintedItem.timeStamp + "\n\n");
 
-                // 5) DOC., ZONAS, QTD
-                printer.printText(currentPrintedItem.typology + "\n");
+                // Tipo de Bilhete
+                printer.setAlignment(1);
+                printer.printText(currentPrintedItem.title + "\n");
                 if (!currentPrintedItem.zones.isEmpty())
                     printer.printText(currentPrintedItem.zones + "\n");
-                if (!currentPrintedItem.quantity.isEmpty())
-                    printer.printText(currentPrintedItem.quantity + "\n");
                 printer.lineWrap(1);
 
-                // 6) PREÇO + ADICIONAIS
-                printer.printText(currentPrintedItem.price);
-                for (String fee : currentPrintedItem.additionalFees) {
-                    printer.printText(fee);
-                }
-                printer.printText("---------------------------\n");
+                // Quantidade e Preço
+                printer.setAlignment(2);
+                printer.printText("Tit. viaggio    " + currentPrintedItem.quantity + " x " + currentPrintedItem.price + " *A\n");
+                printer.printText("------------------------------\n");
 
-                // 7) TOTALE PARZIALE
+                // Preço total parcial
                 String totParz = application.getPaddedText(
                         "TOTALE BIGLIETTO:",
                         application.convertCentesimiInEuro(currentPrintedItem.partialAmount),
@@ -2446,7 +2445,7 @@ public class MainActivity extends AppCompatActivity implements DeviceHelper.Serv
                 );
                 printer.printText(totParz + "\n");
 
-                // 8) LEGENDA IVA
+                // Legenda IVA
                 List<PrintQueueData.VatInfo> vats = new ArrayList<>(orderVatTable.values());
                 vats.sort(Comparator.comparingInt(v -> v.index));
                 StringBuilder legend = new StringBuilder();
@@ -2455,24 +2454,29 @@ public class MainActivity extends AppCompatActivity implements DeviceHelper.Serv
                             .append(application.convertNumberToLetter(info.index))
                             .append(info.vat > 0 ? " IVA " + info.vat + "%  " : " NO IVA  ");
                 }
-                printer.printText(legend.toString() + "\n\n");
+                printer.setAlignment(1);
+                printer.printText(legend.toString() + "\n");
 
-                // 9) QR-CODE
+                // QR CODE
                 if (!currentPrintedItem.qrCodeString.isBlank()) {
                     printer.printQRCode(currentPrintedItem.qrCodeString, 6);
                     printer.lineWrap(1);
                 }
 
-                // 10) IDs
-                printer.printText(currentPrintedItem.idEmissione + "\n");
-                printer.printText(currentPrintedItem.idOperatore + "\n");
-                printer.printText(currentPrintedItem.idDispositivo + "\n");
+                // IDs
+                printer.setAlignment(0);
+                printer.printText("ID TITOLO:      " + currentPrintedItem.idEmissione + "\n");
+                printer.printText("ID OPERATORE:   " + currentPrintedItem.idOperatore + "\n");
+                printer.printText("ID DISPOSITIVO: " + currentPrintedItem.idDispositivo + "\n");
 
-                // 11) TOT. GERAL e final
+                // Total Geral
                 if (lastElement && currentPrintedItem.totalAmount > 0) {
-                    printer.printText("\n---------------------------\n");
-                    String totOrdine = application.convertCentesimiInEuro(currentPrintedItem.totalAmount);
-                    printer.printText("IMPORTO TOTALE: " + totOrdine + "\n");
+                    printer.printText("------------------------------\n");
+                    printer.printText("IMPORTO TOTALE:   " + application.convertCentesimiInEuro(currentPrintedItem.totalAmount) + "\n");
+
+                    // (Opcional) Detalhes da IVA
+                    printer.printText("  Di cui IVA al 5%:   1,23€\n");
+                    printer.printText("  Di cui IVA al 22%:  0,81€\n");
                 }
 
                 printer.lineWrap(3);
@@ -2480,7 +2484,7 @@ public class MainActivity extends AppCompatActivity implements DeviceHelper.Serv
                 if (lastElement) {
                     printer.cutPaper();
                     runOnUiThread(() ->
-                            showProgressoStampa("Stampa completata con successo", false, false, true)
+                            showProgressoStampa("Stampa completata com sucesso", false, false, true)
                     );
                     Log.i("ERROR_PRINT", "Último item impresso, finalizando");
                 } else {

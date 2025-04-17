@@ -11,6 +11,7 @@ class PrinterHelper(ctx: Context) {
     private val context: Context = ctx.applicationContext
     private var printerService: SunmiPrinterService? = null
 
+
     private val callback: InnerPrinterCallback = object : InnerPrinterCallback() {
         override fun onConnected(service: SunmiPrinterService) {
             printerService = service
@@ -61,6 +62,14 @@ class PrinterHelper(ctx: Context) {
                 override fun onRaiseException(code: Int, msg: String) {}
                 override fun onPrintResult(code: Int, msg: String) {}
             })
+        }
+    }
+
+    fun setAlignment(alignment: Int) {
+        try {
+            printerService?.setAlignment(alignment, null)
+        } catch (e: RemoteException) {
+            e.printStackTrace()
         }
     }
 
