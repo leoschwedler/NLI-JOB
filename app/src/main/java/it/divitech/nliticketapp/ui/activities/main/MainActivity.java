@@ -2370,15 +2370,10 @@ public class MainActivity extends AppCompatActivity implements DeviceHelper.Serv
 
     //-----------------------------------------------------------------------------------------------------------------------------------------
 
-
-    //-----------------------------------------------------------------------------------------------------------------------------------------
-
     private void printQueueElement() {
         if (!printer.isConnected()) {
             Log.e("ERROR_PRINT", "PrinterService NÃO conectado");
-            runOnUiThread(() ->
-                    showProgressoStampa("Serviço de impressão não conectado", true, false, false)
-            );
+            runOnUiThread(() -> showProgressoStampa("Serviço de impressão não conectado", true, false, false));
             return;
         }
 
@@ -2389,21 +2384,16 @@ public class MainActivity extends AppCompatActivity implements DeviceHelper.Serv
         }
 
         currentPrintedItem = printQueue.poll();
+        lastPrintedIssueUUID = currentPrintedItem.issueUUID;
         boolean lastElement = printQueue.isEmpty();
         int printedSoFar = printQueueInitialSize - printQueue.size();
-        Log.i(TAG, "Imprimindo item " + currentPrintedItem.issueUUID +
-                " (" + printedSoFar + "/" + printQueueInitialSize + ")");
 
-        runOnUiThread(() ->
-                showProgressoStampa(
-                        "Stampa Titolo di Viaggio\n" + printedSoFar + " di " + printQueueInitialSize,
-                        false, false, false
-                )
-        );
+        String msg = "Stampa Titolo di Viaggio\n" + printedSoFar + " di " + printQueueInitialSize;
+        runOnUiThread(() -> showProgressoStampa(msg, false, false, false));
 
         new Thread(() -> {
             try {
-                // LOGO com fundo branco e redimensionada
+                // LOGO
                 Bitmap original = BitmapFactory.decodeResource(getResources(), R.drawable.logo_nli_black_300);
                 int maxWidth = 384;
                 int newHeight = (int) ((float) original.getHeight() * maxWidth / original.getWidth());
@@ -2421,72 +2411,101 @@ public class MainActivity extends AppCompatActivity implements DeviceHelper.Serv
                 printer.printText("P.IVA 03000970164\n");
                 printer.printText("------------------------------\n");
 
-                // Título: RICEVUTA + Data
-                printer.printText("RICEVUTA DI VENDITA\n\n");
-                printer.printText(currentPrintedItem.timeStamp + "\n\n");
-
-                // Tipo de Bilhete
+                // RICEVUTA
                 printer.setAlignment(1);
-                printer.printText(currentPrintedItem.title + "\n");
-                if (!currentPrintedItem.zones.isEmpty())
-                    printer.printText(currentPrintedItem.zones + "\n");
-                printer.lineWrap(1);
-
-                // Quantidade e Preço
-                printer.setAlignment(2);
-                printer.printText("Tit. viaggio    " + currentPrintedItem.quantity + " x " + currentPrintedItem.price + " *A\n");
+                printer.printText("RICEVUTA DI VENDITA\n");
                 printer.printText("------------------------------\n");
 
-                // Preço total parcial
-                String totParz = application.getPaddedText(
+
+                // Data
+                printer.printText(currentPrintedItem.timeStamp + "\n");
+                printer.lineWrap(1);
+
+
+                printer.printText(currentPrintedItem.typology + "\n");
+
+                // Zonas
+                printer.printText(currentPrintedItem.zones + "\n");
+
+
+                // Quantidade
+                if (!currentPrintedItem.quantity.isEmpty())
+                    printer.printText(currentPrintedItem.quantity + "\n");
+                printer.lineWrap(1);
+
+                // Preço principal
+                printer.setAlignment(0);
+                printer.printText(currentPrintedItem.price + "\n");
+                for (String fee : currentPrintedItem.additionalFees) {
+                    printer.printText(fee + "\n");
+                }
+
+
+                printer.printText("------------------------------\n");
+
+
+                // Total parcial
+                String totaleParziale = application.getPaddedText(
                         "TOTALE BIGLIETTO:",
                         application.convertCentesimiInEuro(currentPrintedItem.partialAmount),
                         LINE_WIDTH_NRM
                 );
-                printer.printText(totParz + "\n");
+                printer.setAlignment(0);
+                printer.printText(totaleParziale + "\n");
+
 
                 // Legenda IVA
                 List<PrintQueueData.VatInfo> vats = new ArrayList<>(orderVatTable.values());
                 vats.sort(Comparator.comparingInt(v -> v.index));
                 StringBuilder legend = new StringBuilder();
                 for (PrintQueueData.VatInfo info : vats) {
-                    legend.append("*")
-                            .append(application.convertNumberToLetter(info.index))
-                            .append(info.vat > 0 ? " IVA " + info.vat + "%  " : " NO IVA  ");
+                    legend.append("*").append(application.convertNumberToLetter(info.index));
+                    legend.append(info.vat > 0 ? " IVA " + info.vat + "%  " : " NO IVA  ");
                 }
-                printer.setAlignment(1);
                 printer.printText(legend.toString() + "\n");
+                printer.lineWrap(1);
 
                 // QR CODE
                 if (!currentPrintedItem.qrCodeString.isBlank()) {
+                    printer.setAlignment(1);
                     printer.printQRCode(currentPrintedItem.qrCodeString, 6);
                     printer.lineWrap(1);
                 }
 
                 // IDs
+                printer.printText(currentPrintedItem.idEmissione + "\n");
                 printer.setAlignment(0);
-                printer.printText("ID TITOLO:      " + currentPrintedItem.idEmissione + "\n");
-                printer.printText("ID OPERATORE:   " + currentPrintedItem.idOperatore + "\n");
-                printer.printText("ID DISPOSITIVO: " + currentPrintedItem.idDispositivo + "\n");
+                printer.printText(currentPrintedItem.idOperatore);
+                printer.printText(currentPrintedItem.idDispositivo);
 
-                // Total Geral
+
+                // Totale Ordine
                 if (lastElement && currentPrintedItem.totalAmount > 0) {
+                    printer.setAlignment(1);
                     printer.printText("------------------------------\n");
-                    printer.printText("IMPORTO TOTALE:   " + application.convertCentesimiInEuro(currentPrintedItem.totalAmount) + "\n");
+                    String totaleOrdine = application.getPaddedText(
+                            "IMPORTO TOTALE" + currentPrintedItem.paymentType + ":",
+                            application.convertCentesimiInEuro(currentPrintedItem.totalAmount),
+                            LINE_WIDTH_NRM
+                    );
+                    printer.setAlignment(0);
+                    printer.printText(totaleOrdine + "\n");
 
-                    // (Opcional) Detalhes da IVA
-                    printer.printText("  Di cui IVA al 5%:   1,23€\n");
-                    printer.printText("  Di cui IVA al 22%:  0,81€\n");
+                    for (PrintQueueData.VatInfo info : vats) {
+                        if (info.vat > 0) {
+                            String label = "Di cui IVA al " + info.vat + "%";
+                            String value = application.convertCentesimiInEuro(info.vatValue);
+                            String padded = application.getPaddedText(label, value, LINE_WIDTH_SML);
+                            printer.printText(padded + "\n");
+                        }
+                    }
                 }
 
                 printer.lineWrap(3);
 
                 if (lastElement) {
                     printer.tryCutPaper();
-                    runOnUiThread(() ->
-                            showProgressoStampa("Stampa completata com sucesso", false, false, true)
-                    );
-                    Log.i("ERROR_PRINT", "Último item impresso, finalizando");
+                    runOnUiThread(() -> showProgressoStampa("Stampa completata com sucesso", false, false, true));
                 } else {
                     Thread.sleep(300);
                     printQueueElement();
@@ -2498,6 +2517,10 @@ public class MainActivity extends AppCompatActivity implements DeviceHelper.Serv
             }
         }).start();
     }
+
+
+
+
 
     private void finishPrint() {
         new Thread(() -> {
