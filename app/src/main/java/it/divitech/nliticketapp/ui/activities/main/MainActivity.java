@@ -2091,6 +2091,7 @@ public class MainActivity extends AppCompatActivity implements DeviceHelper.Serv
         mainIssue.version = application.getFaresTableVersion();
 
         long mainIssueId = application.getIssuesTable().insert(mainIssue);
+        mainIssue.id = (int) mainIssueId;
 
         // Emissioni accessorie
         if (addChildren) {
