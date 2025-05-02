@@ -2062,8 +2062,13 @@ public class MainActivity extends AppCompatActivity implements DeviceHelper.Serv
         mainIssue.discountReason = null;
         mainIssue.ts = application.toIso8601Local(ZonedDateTime.now());
         mainIssue.paymentId = paymentId;
-        mainIssue.fromZoneId = cartItem.mainIssue.fromZoneId > 0 ? cartItem.mainIssue.fromZoneId : null;
-        mainIssue.toZoneId = cartItem.mainIssue.toZoneId > 0 ? cartItem.mainIssue.toZoneId : null;
+
+        mainIssue.fromZoneId = cartItem.mainIssue.fromZoneId > 0
+                ? cartItem.mainIssue.fromZoneId : null;
+
+        mainIssue.toZoneId = cartItem.mainIssue.toZoneId > 0
+                ? cartItem.mainIssue.toZoneId : null;
+
         mainIssue.minutes = cartItem.mainIssue.minutes;
         mainIssue.tripsCount = cartItem.mainIssue.tripsCount;
         mainIssue.details = null;
@@ -2084,7 +2089,7 @@ public class MainActivity extends AppCompatActivity implements DeviceHelper.Serv
 
         mainIssue.mediaHwid = null;
         mainIssue.validFrom = null; // TODO
-        mainIssue.validTo = null; // TODO
+        mainIssue.validTo = null;   // TODO
         mainIssue.quantity = quantity;
         mainIssue.agencyId = application.getCurrentSessionInfo().currentSession.agencyId;
         mainIssue.opSessionId = application.getCurrentSessionInfo().currentSession.id;
@@ -2128,7 +2133,6 @@ public class MainActivity extends AppCompatActivity implements DeviceHelper.Serv
 
                 application.getIssuesTable().insert(childIssue);
             }
-
         }
 
         // Se 'auto-validazione' è attiva... aggiorna direttamente la tabella di validazione
@@ -2139,12 +2143,11 @@ public class MainActivity extends AppCompatActivity implements DeviceHelper.Serv
                     mainIssue.mediaHwid,
                     mainIssue.tripsCount,
                     mainIssue.feeId,
-                    0, //mainIssue.validFrom,
-                    0, //mainIssue.validTo,
-                    mainIssue.fromZoneId,
-                    mainIssue.toZoneId);
+                    0, // mainIssue.validFrom
+                    0, // mainIssue.validTo
+                    mainIssue.fromZoneId != null ? mainIssue.fromZoneId : 0,
+                    mainIssue.toZoneId != null ? mainIssue.toZoneId : 0);
         }
-
     }
 
     //-----------------------------------------------------------------------------------------------------------------------------------------
@@ -2388,6 +2391,18 @@ public class MainActivity extends AppCompatActivity implements DeviceHelper.Serv
         lastPrintedIssueUUID = currentPrintedItem.issueUUID;
         boolean lastElement = printQueue.isEmpty();
         int printedSoFar = printQueueInitialSize - printQueue.size();
+
+        // ✅ LOGS ADICIONADOS AQUI:
+        Log.d("STAMPA", "-------------------------");
+        Log.d("STAMPA", "Imprimindo título UUID: " + currentPrintedItem.issueUUID);
+        Log.d("STAMPA", "Tipo: " + currentPrintedItem.typology);
+        Log.d("STAMPA", "Zonas: " + currentPrintedItem.zones);
+        Log.d("STAMPA", "Quantidade: " + currentPrintedItem.quantity);
+        Log.d("STAMPA", "Preço principal: " + currentPrintedItem.price);
+        Log.d("STAMPA", "Valor parcial: " + currentPrintedItem.partialAmount);
+        Log.d("STAMPA", "QR Code: " + currentPrintedItem.qrCodeString);
+        Log.d("STAMPA", "Último da fila? " + lastElement);
+        Log.d("STAMPA", "-------------------------");
 
         String msg = "Stampa Titolo di Viaggio\n" + printedSoFar + " di " + printQueueInitialSize;
         runOnUiThread(() -> showProgressoStampa(msg, false, false, false));
