@@ -2063,12 +2063,8 @@ public class MainActivity extends AppCompatActivity implements DeviceHelper.Serv
         mainIssue.ts = application.toIso8601Local(ZonedDateTime.now());
         mainIssue.paymentId = paymentId;
 
-        mainIssue.fromZoneId = cartItem.mainIssue.fromZoneId > 0
-                ? cartItem.mainIssue.fromZoneId : null;
-
-        mainIssue.toZoneId = cartItem.mainIssue.toZoneId > 0
-                ? cartItem.mainIssue.toZoneId : null;
-
+        mainIssue.fromZoneId = cartItem.mainIssue.fromZoneId > 0 ? cartItem.mainIssue.fromZoneId : null;
+        mainIssue.toZoneId = cartItem.mainIssue.toZoneId > 0 ? cartItem.mainIssue.toZoneId : null;
         mainIssue.minutes = cartItem.mainIssue.minutes;
         mainIssue.tripsCount = cartItem.mainIssue.tripsCount;
         mainIssue.details = null;
@@ -2077,19 +2073,22 @@ public class MainActivity extends AppCompatActivity implements DeviceHelper.Serv
         cartItem.mainIssue.ts = mainIssue.ts;
 
         if (cartItem.mainIssue.outMedia != null) {
-            if (cartItem.mainIssue.outMedia.equals("qr-code"))
-                mainIssue.mediaType = "Q";
-
-            if (cartItem.mainIssue.outMedia.equals("calypso"))
-                mainIssue.mediaType = "C";
-
-            if (cartItem.mainIssue.outMedia.equals("mifare-ul"))
-                mainIssue.mediaType = "U";
+            switch (cartItem.mainIssue.outMedia) {
+                case "qr-code":
+                    mainIssue.mediaType = "Q";
+                    break;
+                case "calypso":
+                    mainIssue.mediaType = "C";
+                    break;
+                case "mifare-ul":
+                    mainIssue.mediaType = "U";
+                    break;
+            }
         }
 
         mainIssue.mediaHwid = null;
-        mainIssue.validFrom = null; // TODO
-        mainIssue.validTo = null;   // TODO
+        mainIssue.validFrom = null;
+        mainIssue.validTo = null;
         mainIssue.quantity = quantity;
         mainIssue.agencyId = application.getCurrentSessionInfo().currentSession.agencyId;
         mainIssue.opSessionId = application.getCurrentSessionInfo().currentSession.id;
@@ -2135,20 +2134,26 @@ public class MainActivity extends AppCompatActivity implements DeviceHelper.Serv
             }
         }
 
-        // Se 'auto-validazione' è attiva... aggiorna direttamente la tabella di validazione
-        if (cartItem.mainIssue.autoValidation) {
+
+        if (cartItem.mainIssue != null && cartItem.mainIssue.autoValidation) {
+            Log.d("VALIDAZIONE_AUTO", "AUTO-VALIDAZIONE ATIVA para UUID: " + mainIssue.uuid +
+                    " - Tipologia: " + cartItem.mainIssue.feeDescription);
             registraValidazione(application.getUnitId(),
                     (int) mainIssueId,
                     mainIssue.mediaType,
                     mainIssue.mediaHwid,
                     mainIssue.tripsCount,
                     mainIssue.feeId,
-                    0, // mainIssue.validFrom
-                    0, // mainIssue.validTo
+                    0,
+                    0,
                     mainIssue.fromZoneId != null ? mainIssue.fromZoneId : 0,
                     mainIssue.toZoneId != null ? mainIssue.toZoneId : 0);
+        } else {
+            Log.d("VALIDAZIONE_AUTO", "AUTO-VALIDAZIONE DESATIVADA para UUID: " + mainIssue.uuid +
+                    " - Tipologia: " + cartItem.mainIssue.feeDescription);
         }
     }
+
 
     //-----------------------------------------------------------------------------------------------------------------------------------------
 
@@ -2392,17 +2397,6 @@ public class MainActivity extends AppCompatActivity implements DeviceHelper.Serv
         boolean lastElement = printQueue.isEmpty();
         int printedSoFar = printQueueInitialSize - printQueue.size();
 
-        // ✅ LOGS ADICIONADOS AQUI:
-        Log.d("STAMPA", "-------------------------");
-        Log.d("STAMPA", "Imprimindo título UUID: " + currentPrintedItem.issueUUID);
-        Log.d("STAMPA", "Tipo: " + currentPrintedItem.typology);
-        Log.d("STAMPA", "Zonas: " + currentPrintedItem.zones);
-        Log.d("STAMPA", "Quantidade: " + currentPrintedItem.quantity);
-        Log.d("STAMPA", "Preço principal: " + currentPrintedItem.price);
-        Log.d("STAMPA", "Valor parcial: " + currentPrintedItem.partialAmount);
-        Log.d("STAMPA", "QR Code: " + currentPrintedItem.qrCodeString);
-        Log.d("STAMPA", "Último da fila? " + lastElement);
-        Log.d("STAMPA", "-------------------------");
 
         String msg = "Stampa Titolo di Viaggio\n" + printedSoFar + " di " + printQueueInitialSize;
         runOnUiThread(() -> showProgressoStampa(msg, false, false, false));
@@ -3013,15 +3007,24 @@ public class MainActivity extends AppCompatActivity implements DeviceHelper.Serv
 
     //-----------------------------------------------------------------------------------------------------------------------------------------
 
-    private void showDialog_RisultatoLettura(Ticketdata.TicketData ticketData, Fee ticketFee, SearchTicketResponse srcTicketResponse, boolean dominioAziendaValidi, boolean zonaValide, boolean durataMinutiValida, boolean intervalloDateValido, boolean nrCorseValido) {
-        // Nascondi la vista della fotocamera e metti in pausa la lettura QRCode
+    private void showDialog_RisultatoLettura(
+            Ticketdata.TicketData ticketData,
+            Fee ticketFee,
+            SearchTicketResponse srcTicketResponse,
+            boolean dominioAziendaValidi,
+            boolean zonaValide,
+            boolean durataMinutiValida,
+            boolean intervalloDateValido,
+            boolean nrCorseValido) {
+
+
+        // Oculta o scanner e pausa a leitura do QR Code
         hideQrCodeScanner();
 
         Dialog dlg = new Dialog(this, android.R.style.Theme_Translucent_NoTitleBar);
-
         dlg.requestWindowFeature(Window.FEATURE_NO_TITLE);
         dlg.setContentView(R.layout.dialog_risultato_lettura);
-        dlg.setCancelable(false); // BACK non chiude la dialog
+        dlg.setCancelable(false); // Impede fechamento com botão BACK
 
         TextView validationResultTextView = dlg.findViewById(R.id.validationResult_textView);
         TextView dataEmissioneTextView = dlg.findViewById(R.id.dataEmissione_textView);
@@ -3111,7 +3114,6 @@ public class MainActivity extends AppCompatActivity implements DeviceHelper.Serv
                         ticketData.getZoneFrom(),
                         ticketData.getZoneTo());
             }
-
         });
 
         closeButton.setOnClickListener(new View.OnClickListener() {
@@ -3119,11 +3121,8 @@ public class MainActivity extends AppCompatActivity implements DeviceHelper.Serv
             public void onClick(View v) {
                 processingQRCode = false;
                 dlg.dismiss();
-
-                // Ripristina la lettura del QRCode
                 showQrCodeScanner();
             }
-
         });
 
         dlg.show();
