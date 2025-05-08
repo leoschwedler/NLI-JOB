@@ -511,7 +511,6 @@ public class MainActivity extends AppCompatActivity implements DeviceHelper.Serv
     //-----------------------------------------------------------------------------------------------------------------------------------------
 
     private void showDialog_Riepilogo() {
-        Log.d("DEBUG_UI", "showDialog_Riepilogo() chamado");
         riepilogoDlg = new Dialog(this, android.R.style.Theme_Translucent_NoTitleBar);
 
         riepilogoDlg.requestWindowFeature(Window.FEATURE_NO_TITLE);
@@ -526,23 +525,17 @@ public class MainActivity extends AppCompatActivity implements DeviceHelper.Serv
         Button printButton = riepilogoDlg.findViewById(R.id.stampaRiepilogo_button);
         Button cancelButton = riepilogoDlg.findViewById(R.id.cancel_button);
 
-        //--- Botões
         printButton.setOnClickListener(v -> {
             riepilogoDlg.dismiss();
             stampaRiepilogo();
-            Log.d("DEBUG", "Botão Stampa clicado — Entrou em stampaRiepilogo()");
         });
 
         cancelButton.setOnClickListener(v -> riepilogoDlg.dismiss());
 
-        //--- Executa as operações do banco de dados em uma thread separada
         new Thread(() -> {
-            Log.d("DEBUG_UI", "Chamando getDatiRiepilogo()");
             PurchaseSummaryData summary = getDatiRiepilogo();
 
             runOnUiThread(() -> {
-                // Atualizando os TextViews com os dados recuperados
-                Log.d("DEBUG", "Atualizando TextViews com dados de summary");
                 TextView unitIdTextView = riepilogoDlg.findViewById(R.id.unitId_TextView);
                 TextView turnoTextView = riepilogoDlg.findViewById(R.id.tag_TextView);
                 TextView dataturnoTextView = riepilogoDlg.findViewById(R.id.data_sessione_TextView);
@@ -562,23 +555,17 @@ public class MainActivity extends AppCompatActivity implements DeviceHelper.Serv
                 pagamentiCashTextView.setText(summary.cashIssuesCount + "x  " + application.convertCentesimiInEuro(summary.cashIssuesValue));
                 pagamentiPosTextView.setText(summary.posIssuesCount + "x  " + application.convertCentesimiInEuro(summary.posIssuesValue));
 
-                Log.d("DEBUG", "TextViews atualizados");
             });
 
         }).start();
 
-        //--- Exibe o diálogo
         riepilogoDlg.show();
     }
 
     //-----------------------------------------------------------------------------------------------------------------------------------------
-    // Dentro de sua atividade ou ViewModel
     private PurchaseSummaryData getDatiRiepilogo() {
         PurchaseSummaryData summary = new PurchaseSummaryData();
 
-        Log.d("DEBUG", "Recuperando dados de sessão");
-
-        // Recupera sessão do operador atual
         summary.unitID = application.getUnitId();
         summary.sessionId = (int) application.getCurrentSessionInfo().currentSession.id;
         summary.agencyId = application.getCurrentSessionInfo().currentSession.agencyId;
@@ -588,26 +575,14 @@ public class MainActivity extends AppCompatActivity implements DeviceHelper.Serv
         String dataAperturaSessioneISO8601 = application.getCurrentSessionInfo().currentSession.tsOpen;
         String dataCorrenteISO8601 = application.toIso8601Local(ZonedDateTime.now());
 
-        // Log dos dados de sessão
-        Log.d("DEBUG", "Unit ID: " + summary.unitID);
-        Log.d("DEBUG", "Session ID: " + summary.sessionId);
-
         ZonedDateTime dataAperturaSessione = application.fromIso8601ToLocal(dataAperturaSessioneISO8601);
         DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss", Locale.getDefault());
         summary.dataAperturaSessione = dataAperturaSessione.format(dtf);
 
-        Log.d("DEBUG", "Data Abertura Sessão formatada: " + summary.dataAperturaSessione);
 
-        // Consultando os dados do banco
-        Log.d("DEBUG", "Chamando getRegularIssuesInRange...");
         List<Issue> regularIssues = application.getIssuesTable().getRegularIssuesInRange(summary.sessionId, dataAperturaSessioneISO8601, dataCorrenteISO8601);
-        Log.d("DEBUG", "Emissões Regulares: " + regularIssues.size());
-
-        Log.d("DEBUG", "Chamando getvoidedIssuesInRange...");
         List<Issue> voidedIssues = application.getIssuesTable().getvoidedIssuesInRange(summary.sessionId, dataAperturaSessioneISO8601, dataCorrenteISO8601);
-        Log.d("DEBUG", "Emissões Anuladas: " + voidedIssues.size());
 
-        // Cálculos
         summary.regularIssuesCount = 0;
         summary.regularIssuesValue = 0;
         for (Issue issue : regularIssues) {
@@ -622,27 +597,18 @@ public class MainActivity extends AppCompatActivity implements DeviceHelper.Serv
             summary.voidedIssuesValue += Math.abs(issue.value) * issue.quantity;
         }
 
-        // Log dos valores calculados
-        Log.d("DEBUG", "Contagem de Emissões Regulares: " + summary.regularIssuesCount);
-        Log.d("DEBUG", "Valor das Emissões Regulares: " + summary.regularIssuesValue);
-        Log.d("DEBUG", "Contagem de Emissões Anuladas: " + summary.voidedIssuesCount);
-        Log.d("DEBUG", "Valor das Emissões Anuladas: " + summary.voidedIssuesValue);
-
         return summary;
     }
 
     //-----------------------------------------------------------------------------------------------------------------------------------------
 
     private void stampaRiepilogo() {
-        Log.d("DEBUG_STAMPA", "1️⃣ Entrou em stampaRiepilogo()");
-
-        Toast.makeText(this, "Entrou em stampaRiepilogo()", Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, "📄 Avvio stampa riepilogo...", Toast.LENGTH_SHORT).show();
 
         PrinterHelper printer = ((NLITicketApplication) getApplication()).getPrinterHelper();
 
         new Thread(() -> {
             try {
-                // Aguarda conexão com a impressora
                 int tentativas = 0;
                 while (!printer.isConnected() && tentativas < 10) {
                     Thread.sleep(300);
@@ -651,21 +617,21 @@ public class MainActivity extends AppCompatActivity implements DeviceHelper.Serv
 
                 if (!printer.isConnected()) {
                     runOnUiThread(() -> {
-                        Toast.makeText(this, "❌ Impressora Sunmi não conectada", Toast.LENGTH_LONG).show();
-                        showProgressoStampa("ERRORE DI STAMPA\nImpressora não conectada", true, false, false);
+                        Toast.makeText(this, "❌ Stampante Sunmi non connessa", Toast.LENGTH_LONG).show();
+                        showProgressoStampa("ERRORE DI STAMPA\nStampante non connessa", true, false, false);
                     });
                     return;
                 }
 
                 runOnUiThread(() -> {
                     showProgressBar();
-                    Toast.makeText(this, "🟢 Iniciando impressão...", Toast.LENGTH_SHORT).show();
+
                 });
 
                 PurchaseSummaryData summary = getDatiRiepilogo();
                 String formattedDate = new SimpleDateFormat("dd MMMM yyyy", Locale.getDefault()).format(new Date()).toUpperCase();
 
-                runOnUiThread(() -> Toast.makeText(this, "Imprimindo LOGO", Toast.LENGTH_SHORT).show());
+
                 Bitmap original = BitmapFactory.decodeResource(getResources(), R.drawable.logo_nli_black_300);
                 int maxWidth = 384;
                 int newHeight = (int) ((float) original.getHeight() * maxWidth / original.getWidth());
@@ -702,14 +668,13 @@ public class MainActivity extends AppCompatActivity implements DeviceHelper.Serv
                 printer.tryCutPaper();
 
                 runOnUiThread(() -> {
-                    Toast.makeText(this, "✅ Impressão finalizada", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, "✅ Stampa completata", Toast.LENGTH_SHORT).show();
                     hideProgressBar();
                 });
 
             } catch (Exception e) {
-                Log.e("DEBUG_STAMPA", "❗ Erro na impressão", e);
                 runOnUiThread(() -> {
-                    Toast.makeText(this, "Erro de impressão: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                    Toast.makeText(this, "Errore di stampa: " + e.getMessage(), Toast.LENGTH_LONG).show();
                     showProgressoStampa("ERRORE DI STAMPA\n" + e.toString(), true, false, false);
                     hideProgressBar();
                 });
@@ -776,7 +741,6 @@ public class MainActivity extends AppCompatActivity implements DeviceHelper.Serv
     private void registraAnnullamento(String type, String orderUUID, String reason) {
         // WARNING: mettere in pausa il DB-Sync in bkgnd durante le operazioni di emissione/annullamento
         pauseDBSyncService();
-        Log.d(TAG, "pauseDBSyncService() on registraAnnullamento()");
 
         // Annulla pagamanento del carrello attuale
         Payment prevPayment = application.getPaymentsTable().getPaymentByUUID(orderUUID);
@@ -833,7 +797,6 @@ public class MainActivity extends AppCompatActivity implements DeviceHelper.Serv
 
         // WARNING: Ripristina il DB-Sync in bkgnd dopo le operazioni di emissione/annullamento (indipendemente dall'esito)
         resumeDBSyncService();
-        Log.d(TAG, "startDBSyncService() on registraAnnullamento()");
     }
 
     //-----------------------------------------------------------------------------------------------------------------------------------------
@@ -2118,10 +2081,7 @@ public class MainActivity extends AppCompatActivity implements DeviceHelper.Serv
             }
         }
 
-        // Validação automática se necessário
         if (cartItem.mainIssue != null && cartItem.mainIssue.autoValidation) {
-            Log.d("VALIDAZIONE_AUTO", "AUTO-VALIDAZIONE ATIVA para UUID: " + mainIssue.uuid +
-                    " - Tipologia: " + cartItem.mainIssue.feeDescription);
             registraValidazione(application.getUnitId(),
                     (int) mainIssueId,
                     mainIssue.mediaType,
@@ -2132,10 +2092,7 @@ public class MainActivity extends AppCompatActivity implements DeviceHelper.Serv
                     0,
                     mainIssue.fromZoneId != null ? mainIssue.fromZoneId : 0,
                     mainIssue.toZoneId != null ? mainIssue.toZoneId : 0);
-        } else {
-            Log.d("VALIDAZIONE_AUTO", "AUTO-VALIDAZIONE DESATIVADA para UUID: " + mainIssue.uuid +
-                    " - Tipologia: " + cartItem.mainIssue.feeDescription);
-        }
+        } else {}
     }
 
     //-----------------------------------------------------------------------------------------------------------------------------------------
