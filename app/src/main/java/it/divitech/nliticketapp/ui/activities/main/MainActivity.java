@@ -59,12 +59,14 @@ import com.google.zxing.BarcodeFormat;
 import com.journeyapps.barcodescanner.BarcodeCallback;
 import com.journeyapps.barcodescanner.BarcodeResult;
 import com.journeyapps.barcodescanner.DefaultDecoderFactory;
+import com.journeyapps.barcodescanner.camera.CameraSettings;
 
 import java.io.FileDescriptor;
 import java.io.FileInputStream;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
+import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -2000,7 +2002,6 @@ public class MainActivity extends AppCompatActivity implements DeviceHelper.Serv
         mainIssue.discountReason = null;
         mainIssue.ts = application.toIso8601Local(ZonedDateTime.now());
         mainIssue.paymentId = paymentId;
-
         mainIssue.fromZoneId = cartItem.mainIssue.fromZoneId > 0 ? cartItem.mainIssue.fromZoneId : null;
         mainIssue.toZoneId = cartItem.mainIssue.toZoneId > 0 ? cartItem.mainIssue.toZoneId : null;
         mainIssue.minutes = cartItem.mainIssue.minutes;
@@ -2008,7 +2009,7 @@ public class MainActivity extends AppCompatActivity implements DeviceHelper.Serv
         mainIssue.details = null;
         mainIssue.travelerId = null;
 
-        // Atualiza o carrinho com dados da mainIssue
+        // Atualiza info no carrinho
         cartItem.mainIssue.ts = mainIssue.ts;
         cartItem.mainIssue.uuid = mainIssue.uuid;
         cartItem.mainIssue.orderUuid = mainIssue.orderUuid;
@@ -2035,7 +2036,6 @@ public class MainActivity extends AppCompatActivity implements DeviceHelper.Serv
         mainIssue.opSessionId = application.getCurrentSessionInfo().currentSession.id;
         mainIssue.version = application.getFaresTableVersion();
 
-        // Salva e armazena o ID da emissão
         long mainIssueId = application.getIssuesTable().insert(mainIssue);
         mainIssue.id = (int) mainIssueId;
 
@@ -2081,19 +2081,34 @@ public class MainActivity extends AppCompatActivity implements DeviceHelper.Serv
             }
         }
 
-        if (cartItem.mainIssue != null && cartItem.mainIssue.autoValidation) {
-            registraValidazione(application.getUnitId(),
+        // Autovalidazione (seguindo lógica do senior)
+        boolean userEnabledToAutovalidation = application.getCurrentSessionInfo().currentUser.permissions.contains("validate_on_issue");
+
+        if (cartItem.mainIssue.autoValidation && userEnabledToAutovalidation) {
+            int tripsCnt = mainIssue.tripsCount;
+
+            if (tripsCnt != -1) {
+                tripsCnt--;
+                if (tripsCnt < 0) tripsCnt = 0;
+            }
+
+            registraValidazione(
+                    application.getUnitId(),
                     (int) mainIssueId,
                     mainIssue.mediaType,
                     mainIssue.mediaHwid,
-                    mainIssue.tripsCount,
+                    tripsCnt,
                     mainIssue.feeId,
                     0,
                     0,
                     mainIssue.fromZoneId != null ? mainIssue.fromZoneId : 0,
-                    mainIssue.toZoneId != null ? mainIssue.toZoneId : 0);
-        } else {}
+                    mainIssue.toZoneId != null ? mainIssue.toZoneId : 0,
+                    "V",
+                    false
+            );
+        }
     }
+
 
     //-----------------------------------------------------------------------------------------------------------------------------------------
 
@@ -2469,9 +2484,6 @@ public class MainActivity extends AppCompatActivity implements DeviceHelper.Serv
     }
 
 
-
-
-
     private void finishPrint() {
         new Thread(() -> {
             try {
@@ -2773,175 +2785,168 @@ public class MainActivity extends AppCompatActivity implements DeviceHelper.Serv
     private void setupQRCodeScanner() {
         binding.validazioneControlloTicketView.cameraSurfaceView.setStatusText("");
 
-        // Imposta la lettura dei formati QR_CODE e CODE_39
-        List<BarcodeFormat> formats = Arrays.asList(BarcodeFormat.QR_CODE, BarcodeFormat.CODE_39);
+        CameraSettings cameraSettings = binding.validazioneControlloTicketView.cameraSurfaceView.getBarcodeView().getCameraSettings();
+        cameraSettings.setAutoFocusEnabled(true);
+        binding.validazioneControlloTicketView.cameraSurfaceView.getBarcodeView().setCameraSettings(cameraSettings);
+
+        List<BarcodeFormat> formats = Arrays.asList(BarcodeFormat.QR_CODE);
         binding.validazioneControlloTicketView.cameraSurfaceView.getBarcodeView().setDecoderFactory(new DefaultDecoderFactory(formats));
 
-        // Lettura continua
         binding.validazioneControlloTicketView.cameraSurfaceView.decodeContinuous(new BarcodeCallback() {
             @Override
             public void barcodeResult(BarcodeResult result) {
                 try {
-                    if (processingQRCode)
-                        return;
-
+                    if (processingQRCode) return;
                     processingQRCode = true;
 
-                    String qrText = result.getText() == null ? "" : result.getText();
+                    String qrText = result.getText() != null ? result.getText() : "";
                     Ticketdata.TicketData ticketData = decodeTicketData(qrText);
 
                     if (ticketData != null) {
-                        new Thread(() ->
-                        {
-                            int error = NO_ERROR;
-                            boolean dominioAziendaValidi = false;
-                            boolean zonaValide = false;
-                            boolean durataValida = true;
-                            boolean intervalloDateValido = true;
-                            boolean nrCorseValido = true;
-
-                            SearchTicketResponse srcTicketResponse = null;
-                            Fee ticketFee = null;
-
-                            try {
-                                if (DeviceHelper.getInstance().isServiceReady()) {
-                                    DeviceHelper.getInstance().getBeeper().startBeep(200);
-                                }
-
-                                Ticketdata.TicketData finalTicketData = ticketData;
-                                ticketFee = application.getFeesTable().getFeeById(ticketData.getFeeId());
-
-                                if (finalTicketData.getZoneFrom() > 0 && finalTicketData.getZoneTo() > 0) {
-                                    ticketZonaDa = application.getZonesTable().getZoneById(finalTicketData.getZoneFrom());
-                                    ticketZonaA = application.getZonesTable().getZoneById(finalTicketData.getZoneTo());
-                                } else {
-                                    ticketZonaDa = null;
-                                    ticketZonaA = null;
-                                }
-
-                                try {
-                                    String paddedUnitId = String.format("%010d", ticketData.getUnitId());
-                                    String paddedId = String.format("%08d", ticketData.getSerial());
-                                    String tickedID = paddedUnitId + paddedId;
-
-                                    Call<SearchTicketResponse> call = TecBusApiClient.getValidationService().searchTicket("Bearer " + application.getAccessToken(), tickedID);
-                                    Response response = call.execute();
-
-                                    if (response != null && response.body() != null && response.code() == 200) {
-                                        srcTicketResponse = (SearchTicketResponse) response.body();
-                                    } else {
-                                        error = SEARCH_TICKET_BAD_RESPONSE;
-                                    }
-
-                                } catch (Exception e) {
-                                    error = SEARCH_TICKET_EXCEPTION;
-                                }
-
-                                if (finalTicketData.getDomainId() == NLI_DOMAIN_ID &&
-                                        finalTicketData.getUserId() == NLI_USER_ID) {
-                                    dominioAziendaValidi = true;
-                                } else {
-                                    error = INVALID_DOMAIN_OR_USERID;
-                                }
-
-                                if (currentZone != null && ticketZonaDa != null && ticketZonaA != null) {
-                                    if (currentZone.sequence >= ticketZonaDa.sequence &&
-                                            currentZone.sequence <= ticketZonaA.sequence)
-                                        zonaValide = true;
-                                } else if (ticketZonaDa == null && ticketZonaA == null) {
-                                    zonaValide = true;
-                                }
-
-                                if (srcTicketResponse != null) {
-                                    if (srcTicketResponse.state.ts_last_validation != null) {
-                                        ZonedDateTime lastValidationDate = application.fromIso8601ToLocal(srcTicketResponse.state.ts_last_validation);
-
-                                        if (srcTicketResponse.valid_from != null && srcTicketResponse.valid_to != null) {
-                                            ZonedDateTime from = application.fromIso8601ToLocal(srcTicketResponse.valid_from);
-                                            ZonedDateTime to = application.fromIso8601ToLocal(srcTicketResponse.valid_to);
-
-                                            if (ZonedDateTime.now().isBefore(from) || ZonedDateTime.now().isAfter(to))
-                                                intervalloDateValido = false;
-                                        }
-
-                                        if (finalTicketData.getMinutes() > 0) {
-                                            ZonedDateTime dataScadenza = ZonedDateTime.now().plusMinutes(finalTicketData.getMinutes());
-
-                                            if (ZonedDateTime.now().isAfter(dataScadenza))
-                                                durataValida = false;
-                                        } else {
-                                            durataValida = true;
-                                        }
-                                    }
-                                }
-
-                                if (srcTicketResponse != null && srcTicketResponse.state.residual_trips == 0)
-                                    nrCorseValido = false;
-
-                            } catch (RemoteException e) {
-                                error = EXCEPTION;
-                            }
-
-                            if (error != NO_ERROR && error != SEARCH_TICKET_EXCEPTION) {
-                                runOnUiThread(() ->
-                                {
-                                    try {
-                                        if (DeviceHelper.getInstance().isServiceReady()) {
-                                            DeviceHelper.getInstance().getBeeper().startBeepNew(200, 500);
-                                        }
-                                        showDialog_Message("QR-Code non valido!");
-                                    } catch (RemoteException e) {
-                                        Log.e("QRCode", "Erro ao tocar beep de erro", e);
-                                    }
-                                });
-
-                            } else {
-                                SearchTicketResponse finalSrcTicketResponse = srcTicketResponse;
-                                Fee finalTicketFee = ticketFee;
-                                boolean finalDominioAziendaValidi = dominioAziendaValidi;
-                                boolean finalZonaValide = zonaValide;
-                                boolean finalDurataValida = durataValida;
-                                boolean finalIntervalloDateValido = intervalloDateValido;
-                                boolean finalNrCorseValido = nrCorseValido;
-
-                                runOnUiThread(() ->
-                                {
-                                    showDialog_RisultatoLettura(ticketData,
-                                            finalTicketFee,
-                                            finalSrcTicketResponse,
-                                            finalDominioAziendaValidi,
-                                            finalZonaValide,
-                                            finalDurataValida,
-                                            finalIntervalloDateValido,
-                                            finalNrCorseValido);
-                                });
-                            }
-
-                        }).start();
-
+                        gestisciQrCode(ticketData);
                     } else {
-                        runOnUiThread(() ->
-                        {
-                            try {
-                                if (DeviceHelper.getInstance().isServiceReady()) {
-                                    DeviceHelper.getInstance().getBeeper().startBeepNew(200, 500);
-                                }
-                                showDialog_Message("QR-Code non valido!");
-                            } catch (RemoteException e) {
-                                Log.e("QRCode", "Erro ao tocar beep QR inválido", e);
-                            }
-                        });
+                        showQrCodeErrorMessage("QR-Code non valido!");
                     }
 
                 } catch (Exception e) {
                     showSnackbarMessage("ERRORE NELLA DECODIFICA QR-CODE!");
                 }
-
             }
-
         });
 
         binding.validazioneControlloTicketView.cameraSurfaceView.resume();
+    }
+
+    private void gestisciQrCode(Ticketdata.TicketData ticketData) {
+        new Thread(() -> {
+            int error = NO_ERROR;
+            boolean offlineMode = true;
+            Fee ticketFee = null;
+            Fare ticketFare = null;
+            SearchTicketResponse srcTicketResponse = null;
+
+            String paddedUnitId = String.format("%010d", ticketData.getUnitId());
+            String paddedId = String.format("%08d", ticketData.getSerial());
+            String tickedID = paddedUnitId + paddedId;
+
+            try {
+                Call<SearchTicketResponse> call = TecBusApiClient.getValidationService()
+                        .searchTicket("Bearer " + application.getAccessToken(), tickedID);
+                Response response = call.execute();
+
+                if (response != null && response.body() != null && response.code() == 200) {
+                    srcTicketResponse = (SearchTicketResponse) response.body();
+                    offlineMode = false;
+                } else {
+                    error = SEARCH_TICKET_BAD_RESPONSE;
+                }
+
+            } catch (Exception e) {
+                error = SEARCH_TICKET_EXCEPTION;
+            }
+
+            ticketFee = application.getFeesTable().getFeeById(ticketData.getFeeId());
+            if (ticketFee != null)
+                ticketFare = application.getFaresTable().getFareByFeeId(ticketFee.id);
+
+            if (ticketData.getZoneFrom() > 0 && ticketData.getZoneTo() > 0) {
+                ticketZonaDa = application.getZonesTable().getZoneById(ticketData.getZoneFrom());
+                ticketZonaA = application.getZonesTable().getZoneById(ticketData.getZoneTo());
+            } else {
+                ticketZonaDa = null;
+                ticketZonaA = null;
+            }
+
+            if (ticketData.getDomainId() != NLI_DOMAIN_ID || ticketData.getUserId() != NLI_USER_ID) {
+                showQrCodeErrorMessage("CODICE AZIENDA NON RICONOSCIUTO!");
+                return;
+            }
+
+            String status = "";
+            ZonedDateTime lastValidationDate = null;
+            ZonedDateTime validFromDate = null;
+            ZonedDateTime validToDate = null;
+            ZonedDateTime voidedAtDate = null;
+            String mediaType = "";
+            String mediaHwid = "";
+            int residualTrips = ticketFare != null ? ticketFare.tripsCount : 0;
+
+            if (srcTicketResponse != null && srcTicketResponse.state != null) {
+                status = srcTicketResponse.state.status;
+                residualTrips = srcTicketResponse.state.residual_trips;
+                lastValidationDate = application.fromIso8601ToLocal(srcTicketResponse.state.ts_last_validation);
+
+                if (srcTicketResponse.state.ts_valid_from != null && !srcTicketResponse.state.ts_valid_from.startsWith("1970"))
+                    validFromDate = application.fromIso8601ToLocal(srcTicketResponse.state.ts_valid_from);
+
+                if (srcTicketResponse.state.ts_valid_to != null && !srcTicketResponse.state.ts_valid_to.startsWith("1970"))
+                    validToDate = application.fromIso8601ToLocal(srcTicketResponse.state.ts_valid_to);
+
+                if (srcTicketResponse.state.voided_at != null && !srcTicketResponse.state.voided_at.startsWith("1970"))
+                    voidedAtDate = application.fromIso8601ToLocal(srcTicketResponse.state.voided_at);
+
+                mediaType = srcTicketResponse.media_type;
+                mediaHwid = srcTicketResponse.media_hwid;
+
+            } else {
+                if (ticketFee != null && ticketFee.outMedia != null) {
+                    switch (ticketFee.outMedia) {
+                        case "qr-code":
+                            mediaType = "Q";
+                            break;
+                        case "calypso":
+                            mediaType = "C";
+                            break;
+                        case "mifare-ul":
+                            mediaType = "U";
+                            break;
+                    }
+                }
+            }
+
+            Fee finalTicketFee = ticketFee;
+            String finalStatus = status;
+            int finalResidualTrips = residualTrips;
+            ZonedDateTime finalLastValidationDate = lastValidationDate;
+            ZonedDateTime finalValidFromDate = validFromDate;
+            ZonedDateTime finalValidToDate = validToDate;
+            ZonedDateTime finalVoidedAtDate = voidedAtDate;
+            String finalMediaType = mediaType;
+            String finalMediaHwid = mediaHwid;
+            boolean finalOfflineMode = offlineMode;
+
+            runOnUiThread(() -> {
+                showDialog_RisultatoLettura(ticketData,
+                        finalTicketFee,
+                        finalStatus,
+                        finalResidualTrips,
+                        finalLastValidationDate,
+                        finalValidFromDate,
+                        finalValidToDate,
+                        finalVoidedAtDate,
+                        finalMediaType,
+                        finalMediaHwid,
+                        finalOfflineMode);
+            });
+        }).start();
+    }
+
+    //-----------------------------------------------------------------------------------------------------------------------------------------
+
+    private void showQrCodeErrorMessage(String message) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    DeviceHelper.getInstance().getBeeper().startBeepNew(200, 500);
+                } catch (RemoteException e) {
+
+                }
+
+                showDialog_Message(message);
+            }
+
+        });
     }
 
 
@@ -2950,22 +2955,24 @@ public class MainActivity extends AppCompatActivity implements DeviceHelper.Serv
     private void showDialog_RisultatoLettura(
             Ticketdata.TicketData ticketData,
             Fee ticketFee,
-            SearchTicketResponse srcTicketResponse,
-            boolean dominioAziendaValidi,
-            boolean zonaValide,
-            boolean durataMinutiValida,
-            boolean intervalloDateValido,
-            boolean nrCorseValido) {
-
-
-        // Oculta o scanner e pausa a leitura do QR Code
+            String status,
+            int residualTrips,
+            ZonedDateTime lastValidationDate,
+            ZonedDateTime validFromDate,
+            ZonedDateTime validToDate,
+            ZonedDateTime voidedAtDate,
+            String mediaType,
+            String mediaHwid,
+            boolean offlineMode
+    ) {
         hideQrCodeScanner();
 
         Dialog dlg = new Dialog(this, android.R.style.Theme_Translucent_NoTitleBar);
         dlg.requestWindowFeature(Window.FEATURE_NO_TITLE);
         dlg.setContentView(R.layout.dialog_risultato_lettura);
-        dlg.setCancelable(false); // Impede fechamento com botão BACK
+        dlg.setCancelable(false);
 
+        TextView offlineModeTextView = dlg.findViewById(R.id.offlineMode_textView);
         TextView validationResultTextView = dlg.findViewById(R.id.validationResult_textView);
         TextView dataEmissioneTextView = dlg.findViewById(R.id.dataEmissione_textView);
         TextView tipologiaTextView = dlg.findViewById(R.id.tipologia_textView);
@@ -2973,6 +2980,8 @@ public class MainActivity extends AppCompatActivity implements DeviceHelper.Serv
         TextView nrPasseggeriTextView = dlg.findViewById(R.id.quantity_textView);
         TextView residualTripTextView = dlg.findViewById(R.id.residualTrip_textView);
         TextView lastValidationTextView = dlg.findViewById(R.id.lastValidation_textView);
+        TextView ticketIdTextView = dlg.findViewById(R.id.ticketId_textView);
+
         Button validateButton = dlg.findViewById(R.id.validaTicket_button);
         Button closeButton = dlg.findViewById(R.id.close_button);
 
@@ -2983,27 +2992,59 @@ public class MainActivity extends AppCompatActivity implements DeviceHelper.Serv
         nrPasseggeriTextView.setText("");
         residualTripTextView.setText("");
         lastValidationTextView.setText("");
+        ticketIdTextView.setText("");
 
         lastValidationTextView.setVisibility(View.GONE);
         validateButton.setVisibility(View.GONE);
         closeButton.setVisibility(View.VISIBLE);
+        offlineModeTextView.setVisibility(offlineMode ? View.VISIBLE : View.GONE);
 
         String title = "VALIDO";
         int titleBkgndColor = Color.parseColor("#00A000");
+        boolean hideValidationButton = false;
 
-        if (!durataMinutiValida || srcTicketResponse.state.status.equalsIgnoreCase("X")) {
+        if (status.equalsIgnoreCase("X")) {
             title = "SCADUTO / ESAUSTO";
             titleBkgndColor = Color.parseColor("#a0a0C0");
-        } else if (srcTicketResponse.state.status.equalsIgnoreCase("D")) {
-            title = "BLOCCATO / ANNULLATO";
+            hideValidationButton = true;
+        } else if (status.equalsIgnoreCase("D")) {
+            title = "BLOCCATO";
+            if (voidedAtDate != null)
+                title = "ANNULLATO";
             titleBkgndColor = Color.parseColor("#800000");
-        } else if (!zonaValide) {
-            title = "ZONA NON VALIDA";
-            titleBkgndColor = Color.parseColor("#800000");
+            hideValidationButton = true;
         }
 
-        validationResultTextView.setText(title);
-        validationResultTextView.setBackgroundColor(titleBkgndColor);
+        boolean zonaValide = false;
+        if (currentZone != null && ticketZonaDa != null && ticketZonaA != null) {
+            if (currentZone.sequence >= ticketZonaDa.sequence && currentZone.sequence <= ticketZonaA.sequence)
+                zonaValide = true;
+        } else if (ticketZonaDa == null && ticketZonaA == null) {
+            zonaValide = true;
+        }
+
+        if (!zonaValide) {
+            title = "ZONA NON VALIDA";
+            titleBkgndColor = Color.parseColor("#800000");
+            hideValidationButton = true;
+        }
+
+        ZonedDateTime dataUltimaValidazione = lastValidationDate;
+        boolean intervalloDateValido = true;
+        boolean oltreDurataBiglietto = false;
+        long minutiResidui = 0;
+
+        if (validFromDate != null && validToDate != null) {
+            if (ZonedDateTime.now().isBefore(validFromDate) || ZonedDateTime.now().isAfter(validToDate))
+                intervalloDateValido = false;
+        }
+
+        if (dataUltimaValidazione != null && ticketData.getMinutes() > 0) {
+            ZonedDateTime dataScadenza = dataUltimaValidazione.plusMinutes(ticketData.getMinutes());
+            minutiResidui = Duration.between(ZonedDateTime.now(), dataScadenza).toMinutes();
+            if (ZonedDateTime.now().isAfter(dataScadenza))
+                oltreDurataBiglietto = true;
+        }
 
         dataEmissioneTextView.setText("Emesso il " + application.convertTimestampToDate(ticketData.getTsIssue()));
         tipologiaTextView.setText(ticketFee.description != null ? ticketFee.description : "");
@@ -3011,66 +3052,95 @@ public class MainActivity extends AppCompatActivity implements DeviceHelper.Serv
         if (ticketZonaDa != null && ticketZonaA != null)
             zoneTextView.setText(ticketZonaDa.label + " - " + ticketZonaA.label);
 
-        nrPasseggeriTextView.setText("Passeggeri " + ticketData.getQuantity());
+        if (!offlineMode) {
+            nrPasseggeriTextView.setText("Passeggeri " + ticketData.getQuantity());
 
-        if (srcTicketResponse.state.residual_trips >= 0)
-            residualTripTextView.setText("Corse residue " + srcTicketResponse.state.residual_trips);
+            if (residualTrips > 0) {
+                residualTripTextView.setText("Corse residue " + residualTrips);
+            } else {
+                residualTripTextView.setText("Corse esaurite.");
+            }
 
-        if (srcTicketResponse.state.ts_last_validation != null) {
-            ZonedDateTime lastValidationDate = application.fromIso8601ToLocal(srcTicketResponse.state.ts_last_validation);
-            DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss", Locale.getDefault());
+            if (oltreDurataBiglietto) {
+                title = "SCADUTO / ESAUSTO";
+                titleBkgndColor = Color.parseColor("#a0a0C0");
+                hideValidationButton = residualTrips <= 0;
+            } else {
+                residualTripTextView.append("\nMinuti residui " + minutiResidui);
+            }
 
-            lastValidationTextView.setText("ULTIMA VALIDAZIONE:\n" + lastValidationDate.format(dtf));
-            lastValidationTextView.setVisibility(View.VISIBLE);
+            if (lastValidationDate != null) {
+                DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss", Locale.getDefault());
+                lastValidationTextView.setText("ULTIMA VALIDAZIONE:\n" + lastValidationDate.format(dtf));
+                lastValidationTextView.setVisibility(View.VISIBLE);
+            }
+        } else {
+            nrPasseggeriTextView.setVisibility(View.GONE);
+            residualTripTextView.setVisibility(View.GONE);
+            lastValidationTextView.setVisibility(View.GONE);
         }
 
-        if (modalitaViewValidazioneControllo == MODALITA_VALIDAZIONE_TICKET &&
-                dominioAziendaValidi &&
-                zonaValide &&
-                durataMinutiValida &&
-                intervalloDateValido &&
-                nrCorseValido) {
+        if (modalitaViewValidazioneControllo == MODALITA_VALIDAZIONE_TICKET && !hideValidationButton) {
             validateButton.setVisibility(View.VISIBLE);
         }
 
-        validateButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                processingQRCode = false;
-                dlg.dismiss();
+        validationResultTextView.setText(title);
+        validationResultTextView.setBackgroundColor(titleBkgndColor);
 
-                // Ripristina la lettura del QRCode
-                showQrCodeScanner();
-                showProgressBar();
+        String paddedUnitId = String.valueOf(ticketData.getUnitId());
+        String paddedId = String.valueOf(ticketData.getSerial());
+        ticketIdTextView.setText("ID emissione " + paddedUnitId + "-" + paddedId);
 
-                registraValidazione(ticketData.getUnitId(),
-                        ticketData.getSerial(),
-                        srcTicketResponse.media_type,
-                        srcTicketResponse.media_hwid,
-                        srcTicketResponse.state.residual_trips,
-                        ticketData.getFeeId(),
-                        ticketData.getTsValidFrom(),
-                        ticketData.getTsValidTo(),
-                        ticketData.getZoneFrom(),
-                        ticketData.getZoneTo());
+        int finalResidualTrips = residualTrips;
+        ZonedDateTime finalLastValidationDate = lastValidationDate;
+        boolean finalOltreDurataBiglietto = oltreDurataBiglietto;
+
+        validateButton.setOnClickListener(v -> {
+            processingQRCode = false;
+            dlg.dismiss();
+            showQrCodeScanner();
+
+            int tmpResidualTrips = finalResidualTrips;
+            String type = "P";
+
+            if (finalOltreDurataBiglietto || finalLastValidationDate == null) {
+                if (tmpResidualTrips != -1) {
+                    tmpResidualTrips--;
+                    if (tmpResidualTrips < 0) tmpResidualTrips = 0;
+                }
+                type = "V";
             }
+
+            registraValidazione(
+                    ticketData.getUnitId(),
+                    ticketData.getSerial(),
+                    mediaType,
+                    mediaHwid,
+                    tmpResidualTrips,
+                    ticketData.getFeeId(),
+                    ticketData.getTsValidFrom(),
+                    ticketData.getTsValidTo(),
+                    ticketData.getZoneFrom(),
+                    ticketData.getZoneTo(),
+                    type,
+                    !offlineMode
+            );
         });
 
-        closeButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                processingQRCode = false;
-                dlg.dismiss();
-                showQrCodeScanner();
-            }
+        closeButton.setOnClickListener(v -> {
+            processingQRCode = false;
+            dlg.dismiss();
+            showQrCodeScanner();
         });
 
         dlg.show();
     }
 
+
     //-----------------------------------------------------------------------------------------------------------------------------------------
 
-    private void registraValidazione(Integer tickedUnitID, int ticketId, String mediaType, String mediaHwid, int residualTrips, int feeId, long validFrom, long validTo, int zoneFrom, int zoneTo) {
+    private void registraValidazione(Integer tickedUnitID, int ticketId, String mediaType, String mediaHwid, int residualTrips, int feeId, long validFrom, long validTo, int zoneFrom, int zoneTo, String type,                // "V" ou "P"
+                                     boolean validationOnline) {
         new Thread(() ->
         {
             String paddedUnitId = String.format("%010d", tickedUnitID);

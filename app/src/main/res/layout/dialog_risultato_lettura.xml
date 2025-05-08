@@ -39,11 +39,28 @@
             android:textSize="21sp"
             android:textStyle="bold" />
 
+        <TextView
+            android:id="@+id/offlineMode_textView"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="0dp"
+            android:layout_marginBottom="8dp"
+            android:background="#FFFF60"
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp"
+            android:text="OFFLINE"
+            android:textAlignment="center"
+            android:textAllCaps="true"
+            android:textColor="#400000"
+            android:textSize="16sp"
+            android:textStyle="bold|italic" />
+
+
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginLeft="20dp"
-            android:layout_marginTop="16dp"
+            android:layout_marginTop="8dp"
             android:layout_marginRight="20dp"
             android:layout_marginBottom="16dp"
             android:gravity="center"
@@ -99,6 +116,17 @@
                 android:text="Corse residue 0"
                 android:textColor="@color/black"
                 android:textSize="16sp"
+                android:textAlignment="center"
+                android:textStyle="normal" />
+
+            <TextView
+                android:id="@+id/ticketId_textView"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="ID Ticket 00000000"
+                android:textColor="@color/black"
+                android:textSize="14sp"
                 android:textAlignment="center"
                 android:textStyle="normal" />
 
