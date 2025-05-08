@@ -511,85 +511,74 @@ public class MainActivity extends AppCompatActivity implements DeviceHelper.Serv
     //-----------------------------------------------------------------------------------------------------------------------------------------
 
     private void showDialog_Riepilogo() {
+        Log.d("DEBUG_UI", "showDialog_Riepilogo() chamado");
         riepilogoDlg = new Dialog(this, android.R.style.Theme_Translucent_NoTitleBar);
 
         riepilogoDlg.requestWindowFeature(Window.FEATURE_NO_TITLE);
         riepilogoDlg.setContentView(R.layout.dialog_riepilogo);
-        riepilogoDlg.setCancelable(false); // BACK non chiude la dialog
+        riepilogoDlg.setCancelable(false); // BACK não fecha o diálogo
 
         TextView dateTextView = riepilogoDlg.findViewById(R.id.dataRiepilogo_textView);
-
         SimpleDateFormat sdf = new SimpleDateFormat("dd MMMM yyyy", Locale.getDefault());
         String formattedDate = sdf.format(new Date());
-
         dateTextView.setText(formattedDate);
 
         Button printButton = riepilogoDlg.findViewById(R.id.stampaRiepilogo_button);
         Button cancelButton = riepilogoDlg.findViewById(R.id.cancel_button);
 
-        //---
-
-        printButton.setOnClickListener(v ->
-        {
+        //--- Botões
+        printButton.setOnClickListener(v -> {
             riepilogoDlg.dismiss();
-
             stampaRiepilogo();
             Log.d("DEBUG", "Botão Stampa clicado — Entrou em stampaRiepilogo()");
         });
 
-        cancelButton.setOnClickListener(v ->
-        {
-            riepilogoDlg.dismiss();
+        cancelButton.setOnClickListener(v -> riepilogoDlg.dismiss());
 
-        });
+        //--- Executa as operações do banco de dados em uma thread separada
+        new Thread(() -> {
+            Log.d("DEBUG_UI", "Chamando getDatiRiepilogo()");
+            PurchaseSummaryData summary = getDatiRiepilogo();
 
-        //---
+            runOnUiThread(() -> {
+                // Atualizando os TextViews com os dados recuperados
+                Log.d("DEBUG", "Atualizando TextViews com dados de summary");
+                TextView unitIdTextView = riepilogoDlg.findViewById(R.id.unitId_TextView);
+                TextView turnoTextView = riepilogoDlg.findViewById(R.id.tag_TextView);
+                TextView dataturnoTextView = riepilogoDlg.findViewById(R.id.data_sessione_TextView);
+                TextView operatorIdTextView = riepilogoDlg.findViewById(R.id.loginId_TextView);
+                TextView emissioniTextView = riepilogoDlg.findViewById(R.id.emissioni_TextView);
+                TextView annullamentiTextView = riepilogoDlg.findViewById(R.id.annullamenti_TextView);
+                TextView pagamentiCashTextView = riepilogoDlg.findViewById(R.id.cash_TextView);
+                TextView pagamentiPosTextView = riepilogoDlg.findViewById(R.id.pos_TextView);
 
-        // All DB Calls must be done in a separate thread!
-        new Thread(() ->
-        {
-            if (riepilogoDlg != null && riepilogoDlg.isShowing()) {
-                PurchaseSummaryData summary = getDatiRiepilogo();
+                unitIdTextView.setText(String.valueOf(summary.unitID));
+                turnoTextView.setText(summary.turno);
+                dataturnoTextView.setText(summary.dataAperturaSessione);
+                operatorIdTextView.setText(summary.loginUserId);
 
-                runOnUiThread(() ->
-                {
-                    TextView unitIdTextView = riepilogoDlg.findViewById(R.id.unitId_TextView);
-                    TextView turnoTextView = riepilogoDlg.findViewById(R.id.tag_TextView);
-                    TextView dataturnoTextView = riepilogoDlg.findViewById(R.id.data_sessione_TextView);
-                    TextView operatorIdTextView = riepilogoDlg.findViewById(R.id.loginId_TextView);
-                    TextView emissioniTextView = riepilogoDlg.findViewById(R.id.emissioni_TextView);
-                    TextView annullamentiTextView = riepilogoDlg.findViewById(R.id.annullamenti_TextView);
-                    TextView pagamentiCashTextView = riepilogoDlg.findViewById(R.id.cash_TextView);
-                    TextView pagamentiPosTextView = riepilogoDlg.findViewById(R.id.pos_TextView);
+                emissioniTextView.setText(summary.regularIssuesCount + "x  " + application.convertCentesimiInEuro(summary.regularIssuesValue));
+                annullamentiTextView.setText(summary.voidedIssuesCount + "x  -" + application.convertCentesimiInEuro(summary.voidedIssuesValue));
+                pagamentiCashTextView.setText(summary.cashIssuesCount + "x  " + application.convertCentesimiInEuro(summary.cashIssuesValue));
+                pagamentiPosTextView.setText(summary.posIssuesCount + "x  " + application.convertCentesimiInEuro(summary.posIssuesValue));
 
-                    unitIdTextView.setText(String.valueOf(summary.unitID));
-                    turnoTextView.setText(summary.turno);
-                    dataturnoTextView.setText(summary.dataAperturaSessione);
-                    operatorIdTextView.setText(summary.loginUserId);
-
-                    emissioniTextView.setText(summary.regularIssuesCount + "x  " + application.convertCentesimiInEuro(summary.regularIssuesValue));
-                    annullamentiTextView.setText(summary.voidedIssuesCount + "x  -" + application.convertCentesimiInEuro(summary.voidedIssuesValue));
-
-                    pagamentiCashTextView.setText(summary.cashIssuesCount + "x  " + application.convertCentesimiInEuro(summary.cashIssuesValue));
-                    pagamentiPosTextView.setText(summary.posIssuesCount + "x  " + application.convertCentesimiInEuro(summary.posIssuesValue));
-
-                });
-            }
-
+                Log.d("DEBUG", "TextViews atualizados");
+            });
 
         }).start();
 
-        //---
-
+        //--- Exibe o diálogo
         riepilogoDlg.show();
     }
 
     //-----------------------------------------------------------------------------------------------------------------------------------------
-
+    // Dentro de sua atividade ou ViewModel
     private PurchaseSummaryData getDatiRiepilogo() {
         PurchaseSummaryData summary = new PurchaseSummaryData();
 
-        // Recupera sessione operatore corrente
+        Log.d("DEBUG", "Recuperando dados de sessão");
+
+        // Recupera sessão do operador atual
         summary.unitID = application.getUnitId();
         summary.sessionId = (int) application.getCurrentSessionInfo().currentSession.id;
         summary.agencyId = application.getCurrentSessionInfo().currentSession.agencyId;
@@ -599,22 +588,28 @@ public class MainActivity extends AppCompatActivity implements DeviceHelper.Serv
         String dataAperturaSessioneISO8601 = application.getCurrentSessionInfo().currentSession.tsOpen;
         String dataCorrenteISO8601 = application.toIso8601Local(ZonedDateTime.now());
 
+        // Log dos dados de sessão
+        Log.d("DEBUG", "Unit ID: " + summary.unitID);
+        Log.d("DEBUG", "Session ID: " + summary.sessionId);
+
         ZonedDateTime dataAperturaSessione = application.fromIso8601ToLocal(dataAperturaSessioneISO8601);
         DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss", Locale.getDefault());
-
         summary.dataAperturaSessione = dataAperturaSessione.format(dtf);
 
-        // Recupera dati emissioni
-        List<Issue> regularIssues = application.getIssuesTable().getRegularIssuesInRange(summary.sessionId, dataAperturaSessioneISO8601, dataCorrenteISO8601);
-        List<Issue> regularIssuesCash = application.getIssuesTable().getCashRegularIssuesInRange(summary.sessionId, dataAperturaSessioneISO8601, dataCorrenteISO8601);
-        List<Issue> regularIssuesPos = application.getIssuesTable().getPosRegularIssuesInRange(summary.sessionId, dataAperturaSessioneISO8601, dataCorrenteISO8601);
-        List<Issue> voidedIssuesCash = application.getIssuesTable().getCashVoidedIssuesInRange(summary.sessionId, dataAperturaSessioneISO8601, dataCorrenteISO8601);
-        List<Issue> voidedIssuesPos = application.getIssuesTable().getPosVoidedIssuesInRange(summary.sessionId, dataAperturaSessioneISO8601, dataCorrenteISO8601);
-        List<Issue> voidedIssues = application.getIssuesTable().getvoidedIssuesInRange(summary.sessionId, dataAperturaSessioneISO8601, dataCorrenteISO8601);
+        Log.d("DEBUG", "Data Abertura Sessão formatada: " + summary.dataAperturaSessione);
 
+        // Consultando os dados do banco
+        Log.d("DEBUG", "Chamando getRegularIssuesInRange...");
+        List<Issue> regularIssues = application.getIssuesTable().getRegularIssuesInRange(summary.sessionId, dataAperturaSessioneISO8601, dataCorrenteISO8601);
+        Log.d("DEBUG", "Emissões Regulares: " + regularIssues.size());
+
+        Log.d("DEBUG", "Chamando getvoidedIssuesInRange...");
+        List<Issue> voidedIssues = application.getIssuesTable().getvoidedIssuesInRange(summary.sessionId, dataAperturaSessioneISO8601, dataCorrenteISO8601);
+        Log.d("DEBUG", "Emissões Anuladas: " + voidedIssues.size());
+
+        // Cálculos
         summary.regularIssuesCount = 0;
         summary.regularIssuesValue = 0;
-
         for (Issue issue : regularIssues) {
             summary.regularIssuesCount += issue.quantity;
             summary.regularIssuesValue += issue.value * issue.quantity;
@@ -622,45 +617,16 @@ public class MainActivity extends AppCompatActivity implements DeviceHelper.Serv
 
         summary.voidedIssuesCount = 0;
         summary.voidedIssuesValue = 0;
-
         for (Issue issue : voidedIssues) {
             summary.voidedIssuesCount += issue.quantity;
             summary.voidedIssuesValue += Math.abs(issue.value) * issue.quantity;
         }
 
-        int cashRegularIssuesCount = 0;
-        int cashRegularIssuesValue = 0;
-        int cashVoidedIssuesCount = 0;
-        int cashVoidedIssuesValue = 0;
-        int posRegularIssuesCount = 0;
-        int posRegularIssuesValue = 0;
-        int posVoidedIssuesCount = 0;
-        int posVoidedIssuesValue = 0;
-
-        for (Issue issue : regularIssuesCash) {
-            cashRegularIssuesCount += issue.quantity;
-            cashRegularIssuesValue += issue.value * issue.quantity;
-        }
-
-        for (Issue issue : voidedIssuesCash) {
-            cashVoidedIssuesCount += issue.quantity;
-            cashVoidedIssuesValue += issue.value * issue.quantity;
-        }
-
-        for (Issue issue : regularIssuesPos) {
-            posRegularIssuesCount += issue.quantity;
-            posRegularIssuesValue += issue.value * issue.quantity;
-        }
-
-        for (Issue issue : voidedIssuesPos) {
-            posVoidedIssuesCount += issue.quantity;
-            posVoidedIssuesValue += issue.value * issue.quantity;
-        }
-
-        summary.cashIssuesCount = cashRegularIssuesCount - cashVoidedIssuesCount;
-        summary.cashIssuesValue = cashRegularIssuesValue - cashVoidedIssuesValue;
-        summary.posIssuesCount = posRegularIssuesCount - posVoidedIssuesCount;
-        summary.posIssuesValue = posRegularIssuesValue - posVoidedIssuesValue;
+        // Log dos valores calculados
+        Log.d("DEBUG", "Contagem de Emissões Regulares: " + summary.regularIssuesCount);
+        Log.d("DEBUG", "Valor das Emissões Regulares: " + summary.regularIssuesValue);
+        Log.d("DEBUG", "Contagem de Emissões Anuladas: " + summary.voidedIssuesCount);
+        Log.d("DEBUG", "Valor das Emissões Anuladas: " + summary.voidedIssuesValue);
 
         return summary;
     }
@@ -700,8 +666,17 @@ public class MainActivity extends AppCompatActivity implements DeviceHelper.Serv
                 String formattedDate = new SimpleDateFormat("dd MMMM yyyy", Locale.getDefault()).format(new Date()).toUpperCase();
 
                 runOnUiThread(() -> Toast.makeText(this, "Imprimindo LOGO", Toast.LENGTH_SHORT).show());
-                Bitmap logo = BitmapFactory.decodeResource(getResources(), R.drawable.logo_nli_black_300);
-                printer.printBitmap(logo);
+                Bitmap original = BitmapFactory.decodeResource(getResources(), R.drawable.logo_nli_black_300);
+                int maxWidth = 384;
+                int newHeight = (int) ((float) original.getHeight() * maxWidth / original.getWidth());
+                Bitmap resized = Bitmap.createScaledBitmap(original, maxWidth, newHeight, true);
+                Bitmap withWhiteBg = Bitmap.createBitmap(resized.getWidth(), resized.getHeight(), Bitmap.Config.ARGB_8888);
+                Canvas canvas = new Canvas(withWhiteBg);
+                canvas.drawColor(Color.WHITE);
+                canvas.drawBitmap(resized, 0, 0, null);
+
+                printer.setAlignment(1); // centraliza a logo
+                printer.printBitmap(withWhiteBg);
                 printer.lineWrap(1);
 
                 printer.printText("P.IVA 03000970164\n");
@@ -2070,7 +2045,10 @@ public class MainActivity extends AppCompatActivity implements DeviceHelper.Serv
         mainIssue.details = null;
         mainIssue.travelerId = null;
 
+        // Atualiza o carrinho com dados da mainIssue
         cartItem.mainIssue.ts = mainIssue.ts;
+        cartItem.mainIssue.uuid = mainIssue.uuid;
+        cartItem.mainIssue.orderUuid = mainIssue.orderUuid;
 
         if (cartItem.mainIssue.outMedia != null) {
             switch (cartItem.mainIssue.outMedia) {
@@ -2094,8 +2072,14 @@ public class MainActivity extends AppCompatActivity implements DeviceHelper.Serv
         mainIssue.opSessionId = application.getCurrentSessionInfo().currentSession.id;
         mainIssue.version = application.getFaresTableVersion();
 
+        // Salva e armazena o ID da emissão
         long mainIssueId = application.getIssuesTable().insert(mainIssue);
         mainIssue.id = (int) mainIssueId;
+
+        if (cartItem.registeredMainIssueIds == null)
+            cartItem.registeredMainIssueIds = new ArrayList<>();
+
+        cartItem.registeredMainIssueIds.add(mainIssueId);
 
         // Emissioni accessorie
         if (addChildren) {
@@ -2134,7 +2118,7 @@ public class MainActivity extends AppCompatActivity implements DeviceHelper.Serv
             }
         }
 
-
+        // Validação automática se necessário
         if (cartItem.mainIssue != null && cartItem.mainIssue.autoValidation) {
             Log.d("VALIDAZIONE_AUTO", "AUTO-VALIDAZIONE ATIVA para UUID: " + mainIssue.uuid +
                     " - Tipologia: " + cartItem.mainIssue.feeDescription);
@@ -2153,7 +2137,6 @@ public class MainActivity extends AppCompatActivity implements DeviceHelper.Serv
                     " - Tipologia: " + cartItem.mainIssue.feeDescription);
         }
     }
-
 
     //-----------------------------------------------------------------------------------------------------------------------------------------
 

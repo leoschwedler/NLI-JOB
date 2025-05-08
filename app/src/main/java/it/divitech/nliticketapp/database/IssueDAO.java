@@ -12,6 +12,7 @@ import it.divitech.nliticketapp.data.ticketing.Payment;
 
 @Dao
 public interface IssueDAO
+
 {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     void insert( List<Issue> list );
@@ -28,6 +29,9 @@ public interface IssueDAO
     @Query("SELECT * FROM issues_table WHERE order_uuid = :orderId AND parent_uuid IS NULL")
     List<Issue> getParentIssuesByOrderId( String orderId );
 
+    @Query("SELECT * FROM issues_table WHERE id = :id")
+    Issue getIssueByID( long id );
+
     @Query("SELECT * FROM issues_table WHERE order_uuid = :orderId AND parent_uuid = :parentId")
     List<Issue> getIssuesByOrderIdAndParentId( String orderId, String parentId );
 
@@ -42,6 +46,7 @@ public interface IssueDAO
 
     @Query("SELECT * FROM issues_table WHERE type = 'T' AND ts BETWEEN :fromDate AND :toDate AND op_session_id = :sessionId")
     List<Issue> getRegularIssuesInRange( long sessionId, String fromDate, String toDate );
+
 
     @Query("SELECT * FROM issues_table WHERE type = 'V' AND ts BETWEEN :fromDate AND :toDate AND op_session_id = :sessionId")
     List<Issue> getvoidedIssuesInRange( long sessionId, String fromDate, String toDate );
