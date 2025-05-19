@@ -61,6 +61,17 @@ public class Validation
     @JsonProperty( "ts" )
     public String ts = null;
 
+    @ColumnInfo( name = "validation_type" )
+    @Nullable
+    @JsonProperty( "validation_type" )
+    public String validationType = null;
+
+    @ColumnInfo( name = "flags" )
+    @JsonProperty( "flags" )
+    public int flags = 0;
+
+
+
     //-----------------------------------------------------------------------------------------------------------------------------------------
     // Inner class
     //-----------------------------------------------------------------------------------------------------------------------------------------

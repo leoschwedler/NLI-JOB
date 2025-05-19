@@ -1986,9 +1986,11 @@ public class MainActivity extends AppCompatActivity implements DeviceHelper.Serv
     //-----------------------------------------------------------------------------------------------------------------------------------------
 
     private void registraEmissione(ShoppingCartItem cartItem, String orderUUID, int paymentId, int quantity, boolean addChildren) {
-        // Emissione principale
-        Issue mainIssue = new Issue();
+        final String TAG_EMISSIONE = "EmissioneDebug";
 
+        Log.d(TAG_EMISSIONE, ">> registraEmissione() - Iniciando emissão para item: " + cartItem.mainIssue.feeId + ", UUID ordem: " + orderUUID);
+
+        Issue mainIssue = new Issue();
         mainIssue.id = 0;
         mainIssue.unitId = application.getUnitId();
         mainIssue.orderUuid = orderUUID;
@@ -2006,10 +2008,12 @@ public class MainActivity extends AppCompatActivity implements DeviceHelper.Serv
         mainIssue.toZoneId = cartItem.mainIssue.toZoneId > 0 ? cartItem.mainIssue.toZoneId : null;
         mainIssue.minutes = cartItem.mainIssue.minutes;
         mainIssue.tripsCount = cartItem.mainIssue.tripsCount;
+
+        Log.d(TAG_EMISSIONE, ">> tripsCount recebido: " + cartItem.mainIssue.tripsCount);
+
         mainIssue.details = null;
         mainIssue.travelerId = null;
 
-        // Atualiza info no carrinho
         cartItem.mainIssue.ts = mainIssue.ts;
         cartItem.mainIssue.uuid = mainIssue.uuid;
         cartItem.mainIssue.orderUuid = mainIssue.orderUuid;
@@ -2037,14 +2041,11 @@ public class MainActivity extends AppCompatActivity implements DeviceHelper.Serv
         mainIssue.version = application.getFaresTableVersion();
 
         long mainIssueId = application.getIssuesTable().insert(mainIssue);
-        mainIssue.id = (int) mainIssueId;
 
-        if (cartItem.registeredMainIssueIds == null)
-            cartItem.registeredMainIssueIds = new ArrayList<>();
+        Log.d(TAG_EMISSIONE, ">> mainIssue salva no banco com id: " + mainIssueId + ", UUID: " + mainIssue.uuid);
 
         cartItem.registeredMainIssueIds.add(mainIssueId);
 
-        // Emissioni accessorie
         if (addChildren) {
             for (ShoppingCartItem.IssueLight childLightIssue : cartItem.childrenIssues) {
                 Issue childIssue = new Issue();
@@ -2077,38 +2078,43 @@ public class MainActivity extends AppCompatActivity implements DeviceHelper.Serv
                 childIssue.opSessionId = application.getCurrentSessionInfo().currentSession.id;
                 childIssue.version = application.getFaresTableVersion();
 
-                application.getIssuesTable().insert(childIssue);
+                long childIssueId = application.getIssuesTable().insert(childIssue);
+                Log.d(TAG_EMISSIONE, ">> Emissione accessoria salva com id: " + childIssueId);
             }
         }
 
-        // Autovalidazione (seguindo lógica do senior)
         boolean userEnabledToAutovalidation = application.getCurrentSessionInfo().currentUser.permissions.contains("validate_on_issue");
 
         if (cartItem.mainIssue.autoValidation && userEnabledToAutovalidation) {
-            int tripsCnt = mainIssue.tripsCount;
+            int residualTrips = mainIssue.tripsCount;
 
-            if (tripsCnt != -1) {
-                tripsCnt--;
-                if (tripsCnt < 0) tripsCnt = 0;
+            if (residualTrips != -1) {
+                residualTrips = Math.max(0, residualTrips - 1);
             }
+
+            Log.d(TAG_EMISSIONE, ">> AUTO-VALIDAZIONE ATIVA - tripsCount original: " + mainIssue.tripsCount + ", residualTrips enviados: " + residualTrips);
+
+            long validFrom = 0;
+            long validTo = 0;
 
             registraValidazione(
                     application.getUnitId(),
                     (int) mainIssueId,
                     mainIssue.mediaType,
                     mainIssue.mediaHwid,
-                    tripsCnt,
+                    residualTrips,
                     mainIssue.feeId,
-                    0,
-                    0,
+                    validFrom,
+                    validTo,
                     mainIssue.fromZoneId != null ? mainIssue.fromZoneId : 0,
                     mainIssue.toZoneId != null ? mainIssue.toZoneId : 0,
                     "V",
                     false
             );
+        } else {
+            Log.d(TAG_EMISSIONE, ">> Auto-validazione NON eseguita - autoValidation: " + cartItem.mainIssue.autoValidation + ", permesso validate_on_issue: " + userEnabledToAutovalidation);
         }
     }
-
 
     //-----------------------------------------------------------------------------------------------------------------------------------------
 
@@ -3139,16 +3145,26 @@ public class MainActivity extends AppCompatActivity implements DeviceHelper.Serv
 
     //-----------------------------------------------------------------------------------------------------------------------------------------
 
-    private void registraValidazione(Integer tickedUnitID, int ticketId, String mediaType, String mediaHwid, int residualTrips, int feeId, long validFrom, long validTo, int zoneFrom, int zoneTo, String type,                // "V" ou "P"
-                                     boolean validationOnline) {
-        new Thread(() ->
-        {
+    private void registraValidazione(
+            Integer tickedUnitID,
+            int ticketId,
+            String mediaType,
+            String mediaHwid,
+            int residualTrips,
+            int feeId,
+            long validFrom,
+            long validTo,
+            int zoneFrom,
+            int zoneTo,
+            String type, // "V" ou "P"
+            boolean validationOnline
+    ) {
+        new Thread(() -> {
             String paddedUnitId = String.format("%010d", tickedUnitID);
             String paddedId = String.format("%08d", ticketId);
             String serialeEmissione = paddedUnitId + paddedId;
 
             Validation newValidation = new Validation();
-
             newValidation.unitId = application.getUnitId();
             newValidation.userId = NLI_USER_ID;
             newValidation.opSessionId = (int) application.getCurrentSessionInfo().currentSession.id;
@@ -3156,14 +3172,11 @@ public class MainActivity extends AppCompatActivity implements DeviceHelper.Serv
             newValidation.mediaHwid = mediaHwid;
             newValidation.extension = "nli_1.0.0";
             newValidation.documentId = serialeEmissione;
-            newValidation.residualTrips = residualTrips;
-
-            newValidation.residualTrips--;
-
-            if (newValidation.residualTrips < 0)
-                newValidation.residualTrips = 0;
+            newValidation.residualTrips = residualTrips; // ✅ NÃO decrementa aqui
+            newValidation.validationType = type;
 
             newValidation.ts = application.toIso8601Local(ZonedDateTime.now());
+
             newValidation.details = new Validation.Details();
             newValidation.details.feeId = feeId;
             newValidation.details.validFrom = validFrom;
@@ -3172,25 +3185,22 @@ public class MainActivity extends AppCompatActivity implements DeviceHelper.Serv
             newValidation.details.fromZoneId = zoneFrom;
             newValidation.details.toZoneId = zoneTo;
 
+            if (validationOnline) {
+                newValidation.flags = 16;
+            } else {
+                newValidation.flags = 32;
+            }
+
             application.getValidationsTable().insert(newValidation);
 
-            // Registrazione validazione avvenuta con successo, forza upload tabelle immediato
             if (dbSyncServiceBound && dbSyncService != null) {
                 int maxDays = application.getMaxDaysToStoreDBData();
                 String thresholdDateToDelete = application.toIso8601Local(ZonedDateTime.now().minusDays(maxDays));
-
                 dbSyncService.uploadValidationsTable(thresholdDateToDelete);
             }
 
-            runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    hideProgressBar();
-                }
-            });
-
+            runOnUiThread(this::hideProgressBar);
         }).start();
-
     }
 
     //-----------------------------------------------------------------------------------------------------------------------------------------
